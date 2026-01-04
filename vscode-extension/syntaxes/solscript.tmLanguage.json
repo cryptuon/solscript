@@ -1,0 +1,202 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "SolScript",
+  "scopeName": "source.solscript",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#functions" },
+    { "include": "#constants" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.solscript",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.solscript",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "comment.block.documentation.solscript",
+          "begin": "/\\*\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.solscript",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.solscript",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.solscript",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.solscript",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.solscript",
+          "match": "\\b0[xX][0-9a-fA-F_]+\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.solscript",
+          "match": "\\b[0-9][0-9_]*(?:\\.[0-9_]+)?(?:[eE][+-]?[0-9_]+)?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.solscript",
+          "match": "\\b(if|else|for|while|do|break|continue|return|try|catch|throw|emit|revert|require|assert)\\b"
+        },
+        {
+          "name": "keyword.declaration.solscript",
+          "match": "\\b(contract|interface|library|struct|enum|event|error|function|modifier|constructor|fallback|receive)\\b"
+        },
+        {
+          "name": "keyword.modifier.solscript",
+          "match": "\\b(public|private|internal|external|view|pure|payable|virtual|override|abstract|constant|immutable)\\b"
+        },
+        {
+          "name": "keyword.storage.solscript",
+          "match": "\\b(memory|storage|calldata)\\b"
+        },
+        {
+          "name": "keyword.inheritance.solscript",
+          "match": "\\b(is|using|import|pragma)\\b"
+        },
+        {
+          "name": "keyword.other.solscript",
+          "match": "\\b(new|delete|this|super|type|indexed)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.primitive.solscript",
+          "match": "\\b(uint|int|uint8|uint16|uint32|uint64|uint128|uint256|int8|int16|int32|int64|int128|int256|bool|address|string|bytes|bytes1|bytes2|bytes4|bytes8|bytes16|bytes32)\\b"
+        },
+        {
+          "name": "storage.type.mapping.solscript",
+          "match": "\\b(mapping)\\b"
+        },
+        {
+          "name": "entity.name.type.contract.solscript",
+          "match": "\\b(contract|interface|library|struct|enum)\\s+([A-Z][a-zA-Z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.declaration.solscript" },
+            "2": { "name": "entity.name.type.solscript" }
+          }
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.solscript",
+          "match": "\\b(function|modifier|constructor)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "keyword.declaration.solscript" },
+            "2": { "name": "entity.name.function.solscript" }
+          }
+        },
+        {
+          "name": "support.function.builtin.solscript",
+          "match": "\\b(keccak256|sha256|sha3|ripemd160|ecrecover|addmod|mulmod|blockhash|abi\\.encode|abi\\.encodePacked|abi\\.encodeWithSelector|abi\\.encodeWithSignature|abi\\.decode)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.solscript",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "variable.language.solscript",
+          "match": "\\b(msg|block|tx|now)\\b"
+        },
+        {
+          "name": "variable.language.property.solscript",
+          "match": "\\b(msg\\.sender|msg\\.value|msg\\.data|block\\.timestamp|block\\.number|tx\\.origin|tx\\.gasprice)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.solscript",
+          "match": "(=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=)"
+        },
+        {
+          "name": "keyword.operator.comparison.solscript",
+          "match": "(==|!=|<=|>=|<|>)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.solscript",
+          "match": "(\\+|-|\\*|/|%|\\*\\*)"
+        },
+        {
+          "name": "keyword.operator.logical.solscript",
+          "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.bitwise.solscript",
+          "match": "(&|\\||\\^|~|<<|>>)"
+        },
+        {
+          "name": "keyword.operator.ternary.solscript",
+          "match": "(\\?|:)"
+        },
+        {
+          "name": "keyword.operator.arrow.solscript",
+          "match": "(=>)"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.solscript",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.comma.solscript",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.solscript",
+          "match": "\\."
+        }
+      ]
+    }
+  }
+}

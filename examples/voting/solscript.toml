@@ -1,0 +1,10 @@
+[package]
+name = "voting"
+version = "0.1.0"
+description = "Decentralized voting system"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

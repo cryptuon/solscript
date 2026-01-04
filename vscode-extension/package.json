@@ -1,0 +1,135 @@
+{
+  "name": "solscript",
+  "displayName": "SolScript",
+  "description": "SolScript language support for VS Code - Solidity-style syntax for Solana",
+  "version": "0.1.0",
+  "publisher": "solscript",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solscript/solscript"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "keywords": [
+    "solscript",
+    "solidity",
+    "solana",
+    "blockchain",
+    "smart contracts"
+  ],
+  "activationEvents": [
+    "onLanguage:solscript"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "solscript",
+        "aliases": [
+          "SolScript",
+          "solscript"
+        ],
+        "extensions": [
+          ".sol"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "solscript",
+        "scopeName": "source.solscript",
+        "path": "./syntaxes/solscript.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "solscript.build",
+        "title": "SolScript: Build"
+      },
+      {
+        "command": "solscript.check",
+        "title": "SolScript: Check"
+      },
+      {
+        "command": "solscript.restartServer",
+        "title": "SolScript: Restart Language Server"
+      }
+    ],
+    "configuration": {
+      "title": "SolScript",
+      "properties": {
+        "solscript.server.path": {
+          "type": "string",
+          "default": "solscript",
+          "description": "Path to the SolScript executable"
+        },
+        "solscript.format.tabSize": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of spaces per indentation level"
+        },
+        "solscript.format.useTabs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use tabs instead of spaces"
+        },
+        "solscript.lint.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable linting"
+        },
+        "solscript.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace communication with the language server"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "solscript.build",
+        "key": "ctrl+shift+b",
+        "when": "editorLangId == solscript"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "solscript",
+        "path": "./snippets/solscript.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

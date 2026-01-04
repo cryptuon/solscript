@@ -1,0 +1,421 @@
+// SolScript PEG Grammar (Solidity-Style)
+// =======================================
+
+// Entry point
+program = { SOI ~ item* ~ EOI }
+
+// Top-level items
+item = {
+    import_stmt
+  | contract_def
+  | interface_def
+  | struct_def
+  | enum_def
+  | event_def
+  | error_def
+  | function_def
+}
+
+// =============================================================================
+// Imports
+// =============================================================================
+
+import_stmt = { "import" ~ import_list ~ "from" ~ string_lit ~ ";" }
+import_list = { "{" ~ import_item ~ ("," ~ import_item)* ~ ","? ~ "}" }
+import_item = { ident ~ ("as" ~ ident)? }
+
+// =============================================================================
+// Contract Definition
+// =============================================================================
+
+contract_def = {
+    attribute*
+  ~ abstract_kw?
+  ~ "contract" ~ ident ~ inheritance_list?
+  ~ "{" ~ contract_member* ~ "}"
+}
+
+abstract_kw = { "abstract" }
+
+inheritance_list = { "is" ~ type_path ~ ("," ~ type_path)* }
+
+contract_member = {
+    constructor_def
+  | modifier_def
+  | function_def
+  | event_def
+  | error_def
+  | state_var
+}
+
+// State variable: type visibility? name (= expr)?;
+state_var = {
+    attribute*
+  ~ type_expr ~ visibility? ~ ident ~ ("=" ~ expr)? ~ ";"
+}
+
+// =============================================================================
+// Interface Definition (replaces trait)
+// =============================================================================
+
+interface_def = {
+    attribute*
+  ~ "interface" ~ ident ~ inheritance_list?
+  ~ "{" ~ interface_member* ~ "}"
+}
+
+interface_member = { function_sig ~ ";" }
+
+// Function signature without body
+function_sig = {
+    "function" ~ ident ~ generic_params?
+  ~ "(" ~ param_list? ~ ")"
+  ~ visibility? ~ state_mutability* ~ modifier_invocation*
+  ~ returns_clause?
+}
+
+// =============================================================================
+// Struct Definition
+// =============================================================================
+
+struct_def = {
+    attribute*
+  ~ "struct" ~ ident ~ generic_params?
+  ~ "{" ~ struct_field* ~ "}"
+}
+
+// Solidity-style: type name;
+struct_field = { type_expr ~ ident ~ ";" }
+
+// =============================================================================
+// Enum Definition
+// =============================================================================
+
+enum_def = {
+    attribute*
+  ~ "enum" ~ ident
+  ~ "{" ~ enum_variant ~ ("," ~ enum_variant)* ~ ","? ~ "}"
+}
+
+enum_variant = { ident }
+
+// =============================================================================
+// Event & Error Definitions
+// =============================================================================
+
+event_def = {
+    "event" ~ ident ~ "(" ~ event_param ~ ("," ~ event_param)* ~ ","? ~ ")" ~ ";"
+}
+event_param = { type_expr ~ indexed_kw? ~ ident }
+indexed_kw = { "indexed" }
+
+error_def = {
+    "error" ~ ident ~ ("(" ~ error_param ~ ("," ~ error_param)* ~ ","? ~ ")")? ~ ";"
+}
+error_param = { type_expr ~ ident }
+
+// =============================================================================
+// Constructor Definition
+// =============================================================================
+
+constructor_def = {
+    "constructor" ~ "(" ~ param_list? ~ ")"
+  ~ modifier_invocation*
+  ~ block
+}
+
+// =============================================================================
+// Modifier Definition
+// =============================================================================
+
+modifier_def = {
+    "modifier" ~ ident ~ ("(" ~ param_list? ~ ")")?
+  ~ modifier_block
+}
+
+// Modifier block contains _ placeholder
+modifier_block = { "{" ~ modifier_stmt* ~ "}" }
+modifier_stmt = {
+    placeholder_stmt
+  | var_decl_stmt
+  | return_stmt
+  | if_stmt
+  | require_stmt
+  | revert_stmt
+  | expr_stmt
+}
+placeholder_stmt = { "_" ~ ";" }
+
+// =============================================================================
+// Function Definition
+// =============================================================================
+
+function_def = {
+    attribute*
+  ~ "function" ~ ident ~ generic_params?
+  ~ "(" ~ param_list? ~ ")"
+  ~ visibility? ~ state_mutability* ~ modifier_invocation*
+  ~ returns_clause?
+  ~ (block | ";")  // Allow semicolon for abstract functions
+}
+
+// Visibility modifiers
+visibility = { "public" | "private" | "internal" | "external" }
+
+// State mutability modifiers
+state_mutability = { "view" | "pure" | "payable" }
+
+// Modifier invocation on function
+modifier_invocation = { ident ~ ("(" ~ arg_list? ~ ")")? }
+
+// Returns clause
+returns_clause = { "returns" ~ "(" ~ return_param_list? ~ ")" }
+return_param_list = { return_param ~ ("," ~ return_param)* ~ ","? }
+return_param = { type_expr ~ ident? }
+
+// Parameter list (type-first: uint256 amount)
+param_list = { param ~ ("," ~ param)* ~ ","? }
+param = { type_expr ~ storage_location? ~ ident }
+
+// Storage location for reference types
+storage_location = { "memory" | "storage" | "calldata" }
+
+// =============================================================================
+// Generic Parameters (for advanced features)
+// =============================================================================
+
+generic_params = { "<" ~ generic_param ~ ("," ~ generic_param)* ~ ","? ~ ">" }
+generic_param = { ident ~ (":" ~ type_expr ~ ("+" ~ type_expr)*)? }
+generic_args = { "<" ~ type_expr ~ ("," ~ type_expr)* ~ ","? ~ ">" }
+
+// =============================================================================
+// Attributes (for metadata)
+// =============================================================================
+
+attribute = { "#" ~ "[" ~ attribute_inner ~ "]" }
+attribute_inner = {
+    ident ~ ("(" ~ attribute_args? ~ ")")?
+}
+attribute_args = { attribute_arg ~ ("," ~ attribute_arg)* ~ ","? }
+attribute_arg = { (ident ~ "=")? ~ (literal | ident | string_lit) }
+
+// =============================================================================
+// Type Expressions
+// =============================================================================
+
+type_expr = {
+    mapping_type
+  | array_type
+  | type_tuple
+  | type_path
+}
+
+// Mapping type: mapping(KeyType => ValueType)
+mapping_type = { "mapping" ~ "(" ~ type_expr ~ "=>" ~ type_expr ~ ")" }
+
+// Array types: uint256[] (dynamic) or uint256[10] (fixed)
+array_type = { type_path ~ ("[" ~ array_size? ~ "]")+ }
+array_size = @{ digit+ }
+
+// Tuple type: (uint256, bool)
+type_tuple = { "(" ~ (type_expr ~ ("," ~ type_expr)* ~ ","?)? ~ ")" }
+
+// Type path: uint256, address, ContractName, etc.
+type_path = { ident ~ ("::" ~ ident)* ~ generic_args? }
+
+// =============================================================================
+// Statements
+// =============================================================================
+
+block = { "{" ~ stmt* ~ "}" }
+
+stmt = {
+    var_decl_stmt
+  | return_stmt
+  | if_stmt
+  | while_stmt
+  | for_stmt
+  | emit_stmt
+  | require_stmt
+  | revert_stmt
+  | delete_stmt
+  | selfdestruct_stmt
+  | expr_stmt
+}
+
+delete_stmt = { "delete" ~ expr ~ ";" }
+selfdestruct_stmt = { "selfdestruct" ~ "(" ~ expr ~ ")" ~ ";" }
+
+// Variable declaration: type name = value; or type name;
+var_decl_stmt = { type_expr ~ storage_location? ~ ident ~ ("=" ~ expr)? ~ ";" }
+
+return_stmt = { "return" ~ expr? ~ ";" }
+emit_stmt = { "emit" ~ ident ~ "(" ~ arg_list? ~ ")" ~ ";" }
+require_stmt = { "require" ~ "(" ~ expr ~ ("," ~ string_lit)? ~ ")" ~ ";" }
+// revert("message") or revert ErrorName(args)
+revert_stmt = { "revert" ~ (revert_with_error | revert_with_message) ~ ";" }
+revert_with_error = { ident ~ "(" ~ arg_list? ~ ")" }
+revert_with_message = { "(" ~ string_lit? ~ ")" }
+expr_stmt = { expr ~ ";" }
+
+if_stmt = { "if" ~ "(" ~ expr ~ ")" ~ block ~ ("else" ~ (if_stmt | block))? }
+while_stmt = { "while" ~ "(" ~ expr ~ ")" ~ block }
+for_stmt = { "for" ~ "(" ~ for_init? ~ ";" ~ expr? ~ ";" ~ expr? ~ ")" ~ block }
+for_init = { var_decl_stmt_no_semi | expr }
+var_decl_stmt_no_semi = { type_expr ~ storage_location? ~ ident ~ ("=" ~ expr)? }
+
+// =============================================================================
+// Expressions (with precedence)
+// =============================================================================
+
+expr = { ternary_expr }
+
+// Ternary: condition ? then : else
+ternary_expr = { assign_expr ~ ("?" ~ expr ~ ":" ~ ternary_expr)? }
+
+assign_expr = { or_expr ~ (assign_op ~ or_expr)* }
+assign_op = { "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" }
+
+or_expr = { and_expr ~ ("||" ~ and_expr)* }
+and_expr = { bit_or_expr ~ ("&&" ~ bit_or_expr)* }
+bit_or_expr = { bit_xor_expr ~ ("|" ~ bit_xor_expr)* }
+bit_xor_expr = { bit_and_expr ~ ("^" ~ bit_and_expr)* }
+bit_and_expr = { eq_expr ~ ("&" ~ eq_expr)* }
+eq_expr = { cmp_expr ~ (eq_op ~ cmp_expr)* }
+eq_op = { "==" | "!=" }
+cmp_expr = { shift_expr ~ (cmp_op ~ shift_expr)* }
+cmp_op = { "<=" | ">=" | "<" | ">" }
+shift_expr = { add_expr ~ (shift_op ~ add_expr)* }
+shift_op = { "<<" | ">>" }
+add_expr = { mul_expr ~ (add_op ~ mul_expr)* }
+add_op = { "+" | "-" }
+mul_expr = { exp_expr ~ (mul_op ~ exp_expr)* }
+mul_op = { "*" | "/" | "%" }
+exp_expr = { unary_expr ~ ("**" ~ exp_expr)? }
+
+unary_expr = { unary_op* ~ postfix_expr }
+unary_op = { "!" | "-" | "~" | "++" | "--" }
+
+postfix_expr = { primary_expr ~ postfix_op* }
+postfix_op = {
+    call_op
+  | method_call_op
+  | field_access_op
+  | index_op
+  | increment_op
+}
+
+call_op = { "(" ~ arg_list? ~ ")" }
+method_call_op = { "." ~ ident ~ generic_args? ~ "(" ~ arg_list? ~ ")" }
+field_access_op = { "." ~ ident }
+index_op = { "[" ~ expr ~ "]" }
+increment_op = { "++" | "--" }
+
+arg_list = { arg ~ ("," ~ arg)* ~ ","? }
+arg = { (ident ~ ":")? ~ expr }
+
+primary_expr = {
+    literal
+  | new_expr
+  | if_expr
+  | array_literal
+  | tuple_expr
+  | builtin_object
+  | ident_expr
+  | paren_expr
+}
+
+paren_expr = { "(" ~ expr ~ ")" }
+ident_expr = { ident }
+
+// New expression: new ContractName(args)
+new_expr = { "new" ~ type_path ~ "(" ~ arg_list? ~ ")" }
+
+if_expr = { "if" ~ "(" ~ expr ~ ")" ~ block ~ "else" ~ (if_expr | block) }
+
+// Array literal: [1, 2, 3]
+array_literal = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
+
+// Tuple expression: (a, b, c)
+tuple_expr = { "(" ~ expr ~ "," ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ ")" }
+
+// Built-in objects: msg, block, tx
+builtin_object = { (msg_kw | block_kw | tx_kw) ~ !ident_char }
+msg_kw = { "msg" }
+block_kw = { "block" }
+tx_kw = { "tx" }
+
+// =============================================================================
+// Literals
+// =============================================================================
+
+literal = {
+    bool_lit
+  | hex_string_lit
+  | string_lit
+  | hex_number_lit
+  | number_lit
+  | address_lit
+}
+
+bool_lit = { "true" | "false" }
+
+string_lit = @{ "\"" ~ string_inner* ~ "\"" }
+string_inner = { (!("\"" | "\\") ~ ANY) | escape_seq }
+escape_seq = { "\\" ~ ("n" | "r" | "t" | "\\" | "\"" | "0" | ("x" ~ hex_digit{2})) }
+
+hex_string_lit = @{ "hex\"" ~ hex_digit* ~ "\"" }
+
+number_lit = @{ digit+ ~ number_unit? }
+hex_number_lit = @{ "0x" ~ hex_digit+ }
+number_unit = { "wei" | "gwei" | "ether" | "seconds" | "minutes" | "hours" | "days" | "weeks" }
+
+// Address literal (0x followed by 40 hex digits)
+address_lit = @{ "0x" ~ hex_digit{40} }
+
+// =============================================================================
+// Identifiers & Keywords
+// =============================================================================
+
+ident = @{ !keyword ~ (ASCII_ALPHA | "_") ~ ident_char* }
+ident_char = { ASCII_ALPHANUMERIC | "_" }
+
+// Keywords - note: type names (uint256, address, etc.) are NOT keywords
+// They are valid identifiers recognized by the type checker
+keyword = @{
+    ("abstract" | "block" | "calldata" | "constructor" | "contract" | "delete" | "else" | "emit" | "enum"
+  | "error" | "event" | "external" | "false" | "for" | "function" | "if" | "import"
+  | "indexed" | "interface" | "internal" | "is" | "mapping" | "memory" | "modifier"
+  | "msg" | "new" | "payable" | "private" | "public" | "pure" | "require" | "returns"
+  | "return" | "revert" | "selfdestruct" | "storage" | "struct" | "true" | "tx" | "view" | "while")
+  ~ !ident_char
+}
+
+// Integer types: int8, int16, ..., int256
+int_type = @{
+    "int" ~ ("8" | "16" | "24" | "32" | "40" | "48" | "56" | "64" | "72" | "80"
+  | "88" | "96" | "104" | "112" | "120" | "128" | "136" | "144" | "152" | "160"
+  | "168" | "176" | "184" | "192" | "200" | "208" | "216" | "224" | "232" | "240"
+  | "248" | "256")?
+}
+
+// Unsigned integer types: uint8, uint16, ..., uint256
+uint_type = @{
+    "uint" ~ ("8" | "16" | "24" | "32" | "40" | "48" | "56" | "64" | "72" | "80"
+  | "88" | "96" | "104" | "112" | "120" | "128" | "136" | "144" | "152" | "160"
+  | "168" | "176" | "184" | "192" | "200" | "208" | "216" | "224" | "232" | "240"
+  | "248" | "256")?
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+digit = { '0'..'9' }
+hex_digit = { '0'..'9' | 'a'..'f' | 'A'..'F' }
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT = _{
+    "//" ~ (!"\n" ~ ANY)*
+  | "/*" ~ (!"*/" ~ ANY)* ~ "*/"
+}

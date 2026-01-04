@@ -1,0 +1,10 @@
+[package]
+name = "escrow"
+version = "0.1.0"
+description = "Trustless escrow contract"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

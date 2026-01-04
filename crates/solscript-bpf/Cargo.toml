@@ -1,0 +1,22 @@
+[package]
+name = "solscript-bpf"
+description = "BPF compilation for SolScript"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Enable direct LLVM-based BPF compilation (requires LLVM 18 with Polly)
+llvm = ["inkwell", "hex"]
+
+[dependencies]
+solscript-ast = { workspace = true }
+solscript-parser = { workspace = true }
+solscript-typeck = { workspace = true }
+solscript-codegen = { workspace = true }
+thiserror = { workspace = true }
+
+# Optional LLVM dependencies
+inkwell = { version = "0.5", features = ["llvm18-0"], optional = true }
+hex = { version = "0.4", optional = true }

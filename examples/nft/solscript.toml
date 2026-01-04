@@ -1,0 +1,10 @@
+[package]
+name = "nft"
+version = "0.1.0"
+description = "Non-Fungible Token collection"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

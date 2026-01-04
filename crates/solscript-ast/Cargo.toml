@@ -1,0 +1,10 @@
+[package]
+name = "solscript-ast"
+description = "Abstract Syntax Tree types for SolScript"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+smol_str = { workspace = true }
+serde = { workspace = true }

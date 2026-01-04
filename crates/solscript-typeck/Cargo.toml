@@ -1,0 +1,16 @@
+[package]
+name = "solscript-typeck"
+description = "Type checker for SolScript"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+solscript-ast = { workspace = true }
+thiserror = { workspace = true }
+miette = { workspace = true }
+indexmap = { workspace = true }
+smol_str = { workspace = true }
+
+[dev-dependencies]
+solscript-parser = { workspace = true }

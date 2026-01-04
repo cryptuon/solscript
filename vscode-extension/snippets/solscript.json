@@ -1,0 +1,242 @@
+{
+  "Contract": {
+    "prefix": "contract",
+    "body": [
+      "contract ${1:Name} {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "Create a new contract"
+  },
+  "Interface": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:IName} {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "Create a new interface"
+  },
+  "Function": {
+    "prefix": "function",
+    "body": [
+      "function ${1:name}(${2:params}) ${3:public} ${4:returns (${5:type})} {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "Create a new function"
+  },
+  "Function View": {
+    "prefix": "functionview",
+    "body": [
+      "function ${1:name}(${2:params}) public view returns (${3:type}) {",
+      "\treturn ${0};",
+      "}"
+    ],
+    "description": "Create a view function"
+  },
+  "Function Pure": {
+    "prefix": "functionpure",
+    "body": [
+      "function ${1:name}(${2:params}) public pure returns (${3:type}) {",
+      "\treturn ${0};",
+      "}"
+    ],
+    "description": "Create a pure function"
+  },
+  "Constructor": {
+    "prefix": "constructor",
+    "body": [
+      "constructor(${1:params}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "Create a constructor"
+  },
+  "Modifier": {
+    "prefix": "modifier",
+    "body": [
+      "modifier ${1:name}(${2:params}) {",
+      "\trequire(${3:condition}, \"${4:message}\");",
+      "\t_;",
+      "}"
+    ],
+    "description": "Create a modifier"
+  },
+  "Modifier Only Owner": {
+    "prefix": "modifierowner",
+    "body": [
+      "modifier onlyOwner() {",
+      "\trequire(msg.sender == owner, \"Not owner\");",
+      "\t_;",
+      "}"
+    ],
+    "description": "Create an onlyOwner modifier"
+  },
+  "Event": {
+    "prefix": "event",
+    "body": [
+      "event ${1:Name}(${2:params});"
+    ],
+    "description": "Create an event"
+  },
+  "Event Indexed": {
+    "prefix": "eventindexed",
+    "body": [
+      "event ${1:Name}(",
+      "\t${2:address} indexed ${3:param1},",
+      "\t${4:uint256} ${5:param2}",
+      ");"
+    ],
+    "description": "Create an event with indexed parameters"
+  },
+  "Error": {
+    "prefix": "error",
+    "body": [
+      "error ${1:Name}(${2:params});"
+    ],
+    "description": "Create a custom error"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "\t${2:type} ${3:field};",
+      "\t${0}",
+      "}"
+    ],
+    "description": "Create a struct"
+  },
+  "Enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "\t${2:Value1},",
+      "\t${3:Value2}",
+      "}"
+    ],
+    "description": "Create an enum"
+  },
+  "Mapping": {
+    "prefix": "mapping",
+    "body": [
+      "mapping(${1:address} => ${2:uint256}) ${3:public} ${4:name};"
+    ],
+    "description": "Create a mapping"
+  },
+  "Mapping Nested": {
+    "prefix": "mappingnested",
+    "body": [
+      "mapping(${1:address} => mapping(${2:address} => ${3:uint256})) ${4:public} ${5:name};"
+    ],
+    "description": "Create a nested mapping"
+  },
+  "Require": {
+    "prefix": "require",
+    "body": [
+      "require(${1:condition}, \"${2:message}\");"
+    ],
+    "description": "Add a require statement"
+  },
+  "Revert": {
+    "prefix": "revert",
+    "body": [
+      "revert ${1:ErrorName}(${2:params});"
+    ],
+    "description": "Add a revert statement"
+  },
+  "Emit": {
+    "prefix": "emit",
+    "body": [
+      "emit ${1:EventName}(${2:params});"
+    ],
+    "description": "Emit an event"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "If statement"
+  },
+  "If Else": {
+    "prefix": "ifelse",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2}",
+      "} else {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "If-else statement"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for (uint256 ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "For loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while (${1:condition}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "While loop"
+  },
+  "ERC20 Template": {
+    "prefix": "erc20",
+    "body": [
+      "contract ${1:Token} {",
+      "\tstring public name;",
+      "\tstring public symbol;",
+      "\tuint8 public decimals = 9;",
+      "\tuint256 public totalSupply;",
+      "",
+      "\tmapping(address => uint256) public balanceOf;",
+      "\tmapping(address => mapping(address => uint256)) public allowance;",
+      "",
+      "\tevent Transfer(address indexed from, address indexed to, uint256 value);",
+      "\tevent Approval(address indexed owner, address indexed spender, uint256 value);",
+      "",
+      "\tconstructor(string memory _name, string memory _symbol, uint256 _supply) {",
+      "\t\tname = _name;",
+      "\t\tsymbol = _symbol;",
+      "\t\ttotalSupply = _supply;",
+      "\t\tbalanceOf[msg.sender] = _supply;",
+      "\t}",
+      "",
+      "\tfunction transfer(address to, uint256 amount) public returns (bool) {",
+      "\t\trequire(balanceOf[msg.sender] >= amount, \"Insufficient balance\");",
+      "\t\tbalanceOf[msg.sender] -= amount;",
+      "\t\tbalanceOf[to] += amount;",
+      "\t\temit Transfer(msg.sender, to, amount);",
+      "\t\treturn true;",
+      "\t}",
+      "",
+      "\tfunction approve(address spender, uint256 amount) public returns (bool) {",
+      "\t\tallowance[msg.sender][spender] = amount;",
+      "\t\temit Approval(msg.sender, spender, amount);",
+      "\t\treturn true;",
+      "\t}",
+      "",
+      "\tfunction transferFrom(address from, address to, uint256 amount) public returns (bool) {",
+      "\t\trequire(allowance[from][msg.sender] >= amount, \"Not allowed\");",
+      "\t\trequire(balanceOf[from] >= amount, \"Insufficient balance\");",
+      "\t\tallowance[from][msg.sender] -= amount;",
+      "\t\tbalanceOf[from] -= amount;",
+      "\t\tbalanceOf[to] += amount;",
+      "\t\temit Transfer(from, to, amount);",
+      "\t\treturn true;",
+      "\t}",
+      "}"
+    ],
+    "description": "ERC20 token template"
+  }
+}

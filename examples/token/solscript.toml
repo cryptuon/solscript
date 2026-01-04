@@ -1,0 +1,10 @@
+[package]
+name = "token"
+version = "0.1.0"
+description = "ERC20-style fungible token"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

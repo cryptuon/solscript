@@ -1,0 +1,24 @@
+[package]
+name = "solscript-cli"
+description = "Command-line interface for SolScript compiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "solscript"
+path = "src/main.rs"
+
+[dependencies]
+solscript-ast = { workspace = true }
+solscript-parser = { workspace = true }
+solscript-typeck = { workspace = true }
+solscript-codegen = { workspace = true }
+solscript-bpf = { path = "../solscript-bpf" }
+clap = { workspace = true }
+miette = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+notify = "6.1"
+notify-debouncer-mini = "0.4"

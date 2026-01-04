@@ -1,6 +1,6 @@
-# SolanaScript: High-Level Language for Solana Development
+# SolScript: High-Level Language for Solana Development
 
-SolanaScript is a high-level language designed to simplify Solana development while providing access to the full power of the Solana blockchain when needed.
+SolScript is a high-level language designed to simplify Solana development while providing access to the full power of the Solana blockchain when needed.
 
 ## Key Features
 
@@ -8,31 +8,31 @@ SolanaScript is a high-level language designed to simplify Solana development wh
    
    Write Solana programs using a familiar contract-style syntax:
 
-   ```javascript
+   ```solscript
    contract TokenContract {
      @state totalSupply: u64;
-     
+
      @public
-     transfer(to: Address, amount: u64) {
+     fn transfer(to: Address, amount: u64) {
        // Transfer logic here
      }
    }
    ```
 
 2. **Automatic Account Management**
-   
-   Let SolanaScript handle account creation and management for you:
 
-   ```javascript
+   Let SolScript handle account creation and management for you:
+
+   ```solscript
    @account
-   class TokenAccount {
+   struct TokenAccount {
      balance: u64;
      owner: Address;
    }
 
    contract TokenContract {
      @public
-     createAccount(owner: Address) {
+     fn createAccount(owner: Address) {
        // Automatically creates and initializes a TokenAccount
        return TokenAccount.create(owner);
      }
@@ -40,108 +40,109 @@ SolanaScript is a high-level language designed to simplify Solana development wh
    ```
 
 3. **Simplified PDAs**
-   
+
    Work with Program Derived Addresses (PDAs) effortlessly:
 
-   ```javascript
+   ```solscript
    contract PDAPoweredContract {
-     @pda(['user', 'settings'])
+     @pda(["user", "settings"])
      userSettings: UserSettings;
 
      @public
-     updateSettings(user: Address, newSettings: UserSettings) {
+     fn updateSettings(user: Address, newSettings: UserSettings) {
        // Automatically handles PDA derivation and bump seeds
-       this.userSettings.set(user, newSettings);
+       self.userSettings.set(user, newSettings);
      }
    }
    ```
 
 4. **Easy Cross-Program Invocation**
-   
+
    Interact with other Solana programs seamlessly:
 
-   ```javascript
-   import { TokenProgram } from '@solana/spl-token';
+   ```solscript
+   import { Token } from "@solana/token";
 
    contract TokenInteractor {
      @public
-     transferTokens(from: Address, to: Address, amount: u64) {
+     fn transferTokens(from: Address, to: Address, amount: u64) {
        // Automatically handles CPI to the Token program
-       TokenProgram.transfer(from, to, amount);
+       Token.transfer(from, to, amount);
      }
    }
    ```
 
 5. **Built-in Security Features**
-   
+
    Benefit from automatic security checks:
 
-   ```javascript
+   ```solscript
    contract SecureContract {
      @state balance: u64;
 
      @public
-     withdraw(amount: u64) {
+     fn withdraw(amount: u64) {
        // Automatic checks for overflow, underflow, and reentrancy
-       this.balance -= amount;
+       self.balance -= amount;
        transfer(tx.sender, amount);
      }
    }
    ```
 
 6. **Simplified Testing**
-   
+
    Test your contracts with an intuitive testing framework:
 
-   ```javascript
-   import { assert, test } from '@solana/testing';
+   ```solscript
+   import { Test, assert } from "@solana/testing";
 
-   test('TokenContract', (t) => {
-     const token = new TokenContract(1000);
-     token.transfer(Address('receiver'), 100);
-     
-     assert.equal(token.balanceOf(Address('receiver')), 100);
-   });
+   #[test]
+   fn test_token_transfer() {
+     let token = TokenContract.new(1000);
+     token.transfer(Address("receiver"), 100)?;
+
+     assert.eq(token.balanceOf(Address("receiver")), 100);
+   }
    ```
 
 ## Core Solana Concepts
 
-While SolanaScript simplifies many aspects of Solana development, understanding these core concepts remains important:
+While SolScript simplifies many aspects of Solana development, understanding these core concepts remains important:
 
-1. **Accounts**: Solana's fundamental storage unit. SolanaScript abstracts much of account handling, but developers should understand account ownership and rent economics.
+1. **Accounts**: Solana's fundamental storage unit. SolScript abstracts much of account handling, but developers should understand account ownership and rent economics.
 
-2. **Instructions**: The basic unit of execution in Solana. SolanaScript's functions translate to instructions, but understanding instruction anatomy can help with advanced use cases.
+2. **Instructions**: The basic unit of execution in Solana. SolScript's functions translate to instructions, but understanding instruction anatomy can help with advanced use cases.
 
-3. **Transactions**: Groups of instructions. SolanaScript often handles transaction building, but developers should be aware of transaction limits and atomicity.
+3. **Transactions**: Groups of instructions. SolScript often handles transaction building, but developers should be aware of transaction limits and atomicity.
 
-4. **Programs**: Smart contracts in Solana. SolanaScript contracts compile to Solana programs.
+4. **Programs**: Smart contracts in Solana. SolScript contracts compile to Solana programs.
 
-5. **Program Derived Addresses (PDAs)**: Accounts owned by programs. SolanaScript simplifies PDA usage, but understanding their purpose is crucial for advanced patterns.
+5. **Program Derived Addresses (PDAs)**: Accounts owned by programs. SolScript simplifies PDA usage, but understanding their purpose is crucial for advanced patterns.
 
-6. **Rent**: The cost of storing data on Solana. SolanaScript handles many rent calculations, but developers should be aware of its impact on program design.
+6. **Rent**: The cost of storing data on Solana. SolScript handles many rent calculations, but developers should be aware of its impact on program design.
 
-7. **Signer and Writable Permissions**: Access control for accounts. SolanaScript often infers these, but explicit control is available when needed.
+7. **Signer and Writable Permissions**: Access control for accounts. SolScript often infers these, but explicit control is available when needed.
 
 ## Advanced Capabilities
 
-For developers who need fine-grained control, SolanaScript provides access to low-level Solana features:
+For developers who need fine-grained control, SolScript provides access to low-level Solana features:
 
-```javascript
-import { SolanaLow } from '@solana/low-level';
+```solscript
+import { LowLevel } from "@solana/low-level";
 
 contract AdvancedContract {
   @public
-  complexOperation() {
+  fn complexOperation() {
     // Use high-level abstractions
-    this.simpleTransfer(receiver, amount);
+    self.simpleTransfer(receiver, amount);
 
     // Drop down to low-level operations when needed
-    SolanaLow.createAccount({
-      fromPubkey: payer.publicKey,
-      newAccountPubkey: newAccount.publicKey,
+    LowLevel.createAccount({
+      fromPubkey: payer.address,
+      newAccountPubkey: newAccount.address,
       lamports: rentExemptionAmount,
       space: 1024,
-      programId: this.programId
+      programId: self.programId
     });
   }
 }
@@ -156,22 +157,22 @@ contract AdvancedContract {
 
 ## Getting Started
 
-1. Install SolanaScript:
+1. Install SolScript:
    ```
-   npm install -g solanascript
+   cargo install solscript
    ```
 
 2. Create a new project:
    ```
-   solanascript init my-project
+   solscript init my-project
    cd my-project
    ```
 
-3. Write your contract in `src/main.sol`:
-   ```javascript
+3. Write your contract in `src/main.ss`:
+   ```solscript
    contract HelloWorld {
      @public
-     greet(name: string): string {
+     fn greet(name: string): string {
        return `Hello, ${name}!`;
      }
    }
@@ -179,12 +180,12 @@ contract AdvancedContract {
 
 4. Compile and deploy:
    ```
-   solanascript build
-   solanascript deploy
+   solscript build
+   solscript deploy
    ```
 
 ## Learn More
 
-- [SolanaScript Documentation](https://docs.solscript.xyz)
+- [SolScript Documentation](https://docs.solscript.xyz)
 
-SolanaScript: Simplifying Solana development without sacrificing power!
+SolScript: Simplifying Solana development without sacrificing power!

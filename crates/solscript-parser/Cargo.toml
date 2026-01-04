@@ -1,0 +1,18 @@
+[package]
+name = "solscript-parser"
+description = "Parser for SolScript using pest PEG grammar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+solscript-ast = { workspace = true }
+pest = { workspace = true }
+pest_derive = { workspace = true }
+thiserror = { workspace = true }
+miette = { workspace = true }
+smol_str = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+insta = { workspace = true }
