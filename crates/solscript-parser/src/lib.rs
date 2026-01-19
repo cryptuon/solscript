@@ -13,7 +13,7 @@ pub use parser::*;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "solscript.pest"]
+#[grammar = "src/solscript.pest"]
 pub struct SolScriptParser;
 
 /// Parse SolScript source code into an AST
