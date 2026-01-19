@@ -1,9 +1,10 @@
 [package]
 name = "solscript-lsp"
-version = "0.1.0"
-edition = "2021"
 description = "Language Server Protocol implementation for SolScript"
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 solscript-ast = { workspace = true }

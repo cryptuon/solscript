@@ -4,6 +4,7 @@ description = "Command-line interface for SolScript compiler"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "solscript"
@@ -14,7 +15,7 @@ solscript-ast = { workspace = true }
 solscript-parser = { workspace = true }
 solscript-typeck = { workspace = true }
 solscript-codegen = { workspace = true }
-solscript-bpf = { path = "../solscript-bpf" }
+solscript-bpf = { workspace = true }
 clap = { workspace = true }
 miette = { workspace = true }
 serde = { workspace = true }

@@ -19,10 +19,11 @@ rust-version = "1.75"
 
 [workspace.dependencies]
 # Internal crates
-solscript-ast = { path = "crates/solscript-ast" }
-solscript-parser = { path = "crates/solscript-parser" }
-solscript-typeck = { path = "crates/solscript-typeck" }
-solscript-codegen = { path = "crates/solscript-codegen" }
+solscript-ast = { version = "0.1.0", path = "crates/solscript-ast" }
+solscript-parser = { version = "0.1.0", path = "crates/solscript-parser" }
+solscript-typeck = { version = "0.1.0", path = "crates/solscript-typeck" }
+solscript-codegen = { version = "0.1.0", path = "crates/solscript-codegen" }
+solscript-bpf = { version = "0.1.0", path = "crates/solscript-bpf" }
 
 # Parsing
 pest = "2.7"
