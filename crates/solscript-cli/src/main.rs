@@ -1032,6 +1032,16 @@ fn format_contract_member(member: &solscript_ast::ContractMember) -> String {
         ContractMember::Modifier(m) => format_modifier(m),
         ContractMember::Event(e) => format!("    {};\n", format_event_inline(e)),
         ContractMember::Error(e) => format!("    {};\n", format_error_inline(e)),
+        ContractMember::Struct(s) => {
+            // Indent struct inside contract
+            let formatted = format_struct(s);
+            formatted.lines().map(|l| format!("    {}\n", l)).collect()
+        }
+        ContractMember::Enum(e) => {
+            // Indent enum inside contract
+            let formatted = format_enum(e);
+            formatted.lines().map(|l| format!("    {}\n", l)).collect()
+        }
     }
 }
 

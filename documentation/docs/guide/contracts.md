@@ -127,6 +127,7 @@ contract Errors {
     error InsufficientBalance(uint256 available, uint256 required);
     error Unauthorized(address caller);
     error InvalidAddress();
+    error TransferFailed();  // Empty errors work too!
 
     function withdraw(uint256 amount) public {
         if (balances[msg.sender] < amount) {
@@ -136,6 +137,45 @@ contract Errors {
     }
 }
 ```
+
+### Structs and Enums Inside Contracts
+
+You can define structs and enums directly inside contracts:
+
+```solidity
+contract Token {
+    // Struct inside contract
+    struct UserBalance {
+        uint256 amount;
+        uint64 lastUpdate;
+        bool frozen;
+    }
+
+    // Enum inside contract
+    enum TokenStatus {
+        Active,
+        Paused,
+        Deprecated
+    }
+
+    // Use them in state
+    mapping(address => UserBalance) public balances;
+    TokenStatus public status;
+
+    function freeze(address user) public onlyOwner {
+        balances[user].frozen = true;
+    }
+
+    function pause() public onlyOwner {
+        status = TokenStatus.Paused;
+    }
+}
+```
+
+!!! tip "Struct and Enum Placement"
+    Structs and enums can be defined either inside or outside contracts.
+    Inside contracts provides better encapsulation, while outside allows
+    sharing between multiple contracts.
 
 ### Modifiers
 

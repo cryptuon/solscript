@@ -107,9 +107,14 @@ Skip the boilerplate of Anchor/Rust. Write cleaner, more maintainable code with 
 
 SolScript handles most common patterns, but some Solana features require workarounds:
 
-- **No direct SOL transfers** - Use wrapped SOL (SPL Token)
+- **No incoming SOL payments** - `msg.value` returns 0, use wrapped SOL for receiving payments
 - **No Token 2022** - Only SPL Token supported
-- **Some syntax restrictions** - See [Roadmap](reference/roadmap.md)
+- **See [Roadmap](reference/roadmap.md)** for full details
+
+!!! success "New in v0.3.0"
+    - **SOL transfers** - Use `transfer(to, amount)` to send SOL
+    - **Mapping cleanup** - Use `delete mapping[key]` to close PDAs and reclaim rent
+    - **Structs/enums in contracts** - Define types inside contract bodies
 
 ## Installation
 

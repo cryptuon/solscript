@@ -86,6 +86,30 @@ contract Balances {
     Mappings are implemented as Program Derived Addresses (PDAs) on Solana.
     Each key derives a unique account address.
 
+### Deleting Mapping Entries
+
+Use `delete` to remove a mapping entry and reclaim rent:
+
+```solidity
+contract UserRegistry {
+    mapping(address => uint64) public scores;
+    mapping(address => mapping(address => uint256)) public allowances;
+
+    function removeUser(address user) public {
+        delete scores[user];  // Closes PDA, refunds rent to signer
+    }
+
+    function revokeAllowance(address owner, address spender) public {
+        delete allowances[owner][spender];  // Works with nested mappings too
+    }
+}
+```
+
+!!! tip "PDA Closing"
+    When you `delete` a mapping entry, the underlying PDA account is closed
+    and the rent (lamports) is returned to the transaction signer. This is
+    the proper way to clean up mapping data on Solana.
+
 ## Arrays
 
 ### Dynamic Arrays

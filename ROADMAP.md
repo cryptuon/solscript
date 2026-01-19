@@ -17,31 +17,32 @@ SolScript is a Solidity-to-Solana compiler that generates Anchor/Rust code. It's
 | SPL Token operations | ✅ |
 | `msg.sender`, `block.timestamp` | ✅ |
 | Automatic rent exemption | ✅ |
+| Structs/enums inside contracts | ✅ |
+| Empty error declarations | ✅ |
+| Direct SOL transfers | ✅ |
+| Mapping PDA closing | ✅ |
 
 ## Known Limitations
 
 | Limitation | Workaround | Planned Fix |
 |------------|------------|-------------|
-| No SOL transfers (`msg.value` = 0) | Use wrapped SOL | v0.3.0 |
+| `msg.value` = 0 for incoming payments | Use wrapped SOL | - |
 | No Token 2022 | Extend generated code | v0.4.0 |
-| No structs/enums inside contracts | Define outside | v0.2.0 |
-| No empty errors `error Foo()` | Add dummy parameter | v0.2.0 |
-| Can't close mapping PDAs | Manual Anchor code | v0.3.0 |
 | No compute budget control | Client-side request | v0.4.0 |
+| Modifiers inlined | Keep modifiers small | v0.4.0 |
 
 ## Release Plan
 
-### v0.2.0 - Parser Improvements
-- Structs inside contracts
-- Enums inside contracts
-- Empty error declarations
-- Better error messages
+### v0.2.0 - Parser Improvements ✅ RELEASED
+- ✅ Structs inside contracts
+- ✅ Enums inside contracts
+- ✅ Empty error declarations
+- Better error messages (planned)
 
-### v0.3.0 - Solana Native Features
-- Direct SOL transfers
-- `msg.value` support
-- Mapping PDA closing
-- Optimized modifier generation
+### v0.3.0 - Solana Native Features ✅ RELEASED
+- ✅ Direct SOL transfers (`transfer(to, amount)`)
+- ✅ Mapping PDA closing (`delete mapping[key]`)
+- Optimized modifier generation (planned)
 
 ### v0.4.0 - Extended Ecosystem
 - Token 2022 support

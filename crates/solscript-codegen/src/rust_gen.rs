@@ -559,11 +559,20 @@ fn {}({}) -> {} {{
                 ))
             }
             Statement::Delete(target) => {
-                // Delete resets the target to its default value
-                // For state variables: assign Default::default()
-                // For mappings: we would need to close the PDA (not supported yet)
-                let target_expr = self.generate_expression(target)?;
-                Ok(format!("{}{} = Default::default();\n", ind, target_expr))
+                // Check if this is a mapping access (delete closes the PDA)
+                if let Expression::MappingAccess { account_name, .. } = target {
+                    // PDA closing is handled by the `close = signer` account constraint
+                    // The account will be closed and lamports returned to signer
+                    Ok(format!(
+                        "{}// PDA {} closed via `close = signer` constraint\n",
+                        ind,
+                        to_snake_case(account_name)
+                    ))
+                } else {
+                    // For non-mapping targets (state variables): assign Default::default()
+                    let target_expr = self.generate_expression(target)?;
+                    Ok(format!("{}{} = Default::default();\n", ind, target_expr))
+                }
             }
             Statement::Selfdestruct { .. } => {
                 // Selfdestruct is handled by the close constraint on the state account
@@ -835,6 +844,27 @@ fn {}({}) -> {} {{
             anchor_spl::token::burn(CpiContext::new(cpi_program, cpi_accounts), {} as u64)?
         }}"#,
                     to_snake_case(&from_str), to_snake_case(&mint_str), to_snake_case(&auth_str), amt_str
+                ))
+            }
+            Expression::SolTransfer { to, amount } => {
+                let to_str = self.generate_expression(to)?;
+                let amt_str = self.generate_expression(amount)?;
+                // Use Anchor's system_program CPI for SOL transfers
+                // Validate that the recipient account matches the intended destination
+                Ok(format!(
+                    r#"{{
+            // Validate recipient matches the intended destination
+            require!(ctx.accounts.recipient.key() == {to_str}, CustomError::InvalidRecipient);
+            let cpi_accounts = anchor_lang::system_program::Transfer {{
+                from: ctx.accounts.signer.to_account_info(),
+                to: ctx.accounts.recipient.to_account_info(),
+            }};
+            let cpi_ctx = anchor_lang::prelude::CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                cpi_accounts
+            );
+            anchor_lang::system_program::transfer(cpi_ctx, {amt_str} as u64)?
+        }}"#
                 ))
             }
             Expression::GetATA { owner, mint } => {
@@ -1187,7 +1217,23 @@ use anchor_lang::prelude::*;
                 .collect::<Result<Vec<_>, _>>()?;
             let seeds_str = key_seeds.iter().map(|s| format!("{}.as_ref()", s)).collect::<Vec<_>>().join(", ");
 
-            if access.is_write {
+            if access.should_close {
+                // Close the PDA and return lamports to signer
+                content.push_str(&format!(
+                    r#"    #[account(
+        mut,
+        close = signer,
+        seeds = [b"{}", {}],
+        bump
+    )]
+    pub {}: Account<'info, {}>,
+"#,
+                    to_snake_case(&access.mapping_name),
+                    seeds_str,
+                    account_name,
+                    entry_type
+                ));
+            } else if access.is_write {
                 // Use init_if_needed for write accesses
                 content.push_str(&format!(
                     r#"    #[account(
@@ -1222,10 +1268,19 @@ use anchor_lang::prelude::*;
             }
         }
 
-        // System program (needed if any init_if_needed is used, or for payable functions)
+        // Recipient account (needed for SOL transfers)
+        // The recipient must be passed as an UncheckedAccount to receive SOL
+        if instruction.uses_sol_transfer {
+            content.push_str("    /// CHECK: Recipient account for SOL transfer, validated by the caller\n");
+            content.push_str("    #[account(mut)]\n");
+            content.push_str("    pub recipient: UncheckedAccount<'info>,\n");
+        }
+
+        // System program (needed if any init_if_needed is used, for payable functions, or for SOL transfers)
         let needs_system_program = instruction.name == "initialize"
             || instruction.mapping_accesses.iter().any(|a| a.is_write)
-            || instruction.is_payable;
+            || instruction.is_payable
+            || instruction.uses_sol_transfer;
         if needs_system_program {
             content.push_str("    pub system_program: Program<'info, System>,\n");
         }
@@ -1304,6 +1359,8 @@ use anchor_lang::prelude::*;
 pub enum CustomError {
     #[msg("Requirement failed")]
     RequireFailed,
+    #[msg("Invalid recipient account")]
+    InvalidRecipient,
 "#,
         );
 

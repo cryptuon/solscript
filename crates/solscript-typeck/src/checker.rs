@@ -103,7 +103,7 @@ impl TypeChecker {
                 let def = self.build_contract_def(c);
                 self.symbols.define_type(c.name.name.clone(), TypeDef::Contract(def));
 
-                // Also register events and errors defined inside the contract
+                // Also register events, errors, structs, and enums defined inside the contract
                 for member in &c.members {
                     match member {
                         ast::ContractMember::Event(e) => {
@@ -113,6 +113,14 @@ impl TypeChecker {
                         ast::ContractMember::Error(e) => {
                             let error_def = self.build_error_def(e);
                             self.symbols.define_type(e.name.name.clone(), TypeDef::Error(error_def));
+                        }
+                        ast::ContractMember::Struct(s) => {
+                            let struct_def = self.build_struct_def(s);
+                            self.symbols.define_type(s.name.name.clone(), TypeDef::Struct(struct_def));
+                        }
+                        ast::ContractMember::Enum(e) => {
+                            let enum_def = self.build_enum_def(e);
+                            self.symbols.define_type(e.name.name.clone(), TypeDef::Enum(enum_def));
                         }
                         _ => {}
                     }
@@ -418,6 +426,8 @@ impl TypeChecker {
                 ast::ContractMember::StateVar(_) => {} // Already added
                 ast::ContractMember::Event(_) => {}    // Events are declarations
                 ast::ContractMember::Error(_) => {}    // Errors are declarations
+                ast::ContractMember::Struct(s) => self.check_struct(s),
+                ast::ContractMember::Enum(e) => self.check_enum(e),
             }
         }
 
@@ -1196,6 +1206,39 @@ impl TypeChecker {
                         self.error(TypeError::type_mismatch(
                             &Type::Primitive(PrimitiveType::Uint256),
                             &right_ty,
+                            self.span(call.args[1].value.span()),
+                            &self.source,
+                        ));
+                    }
+                    return Type::Unit;
+                }
+                "transfer" => {
+                    // transfer(to, amount) - direct SOL transfer
+                    if call.args.len() != 2 {
+                        self.error(TypeError::wrong_arg_count(
+                            2,
+                            call.args.len(),
+                            self.span(call.span),
+                            &self.source,
+                        ));
+                        return Type::Unit;
+                    }
+                    let to_ty = self.check_expr(&call.args[0].value);
+                    let amount_ty = self.check_expr(&call.args[1].value);
+                    // First arg should be an address
+                    if !matches!(to_ty, Type::Primitive(PrimitiveType::Address)) && !matches!(to_ty, Type::Error) {
+                        self.error(TypeError::type_mismatch(
+                            &Type::Primitive(PrimitiveType::Address),
+                            &to_ty,
+                            self.span(call.args[0].value.span()),
+                            &self.source,
+                        ));
+                    }
+                    // Second arg should be an integer (lamports)
+                    if !amount_ty.is_integer() && !matches!(amount_ty, Type::Error) {
+                        self.error(TypeError::type_mismatch(
+                            &Type::Primitive(PrimitiveType::Uint64),
+                            &amount_ty,
                             self.span(call.args[1].value.span()),
                             &self.source,
                         ));

@@ -13,7 +13,7 @@ SolScript is functional for common smart contract patterns. The compiler generat
 | State variables | ✅ Complete | All primitive types, structs, arrays |
 | Mappings → PDAs | ✅ Complete | Automatic transformation with seeds |
 | Events | ✅ Complete | Full Anchor event support |
-| Custom errors | ✅ Complete | Error codes with parameters |
+| Custom errors | ✅ Complete | Error codes with parameters, empty errors supported |
 | Modifiers | ✅ Complete | Inlined into functions |
 | View functions | ✅ Complete | Read-only account access |
 | Access control | ✅ Complete | Via modifiers and require |
@@ -22,30 +22,37 @@ SolScript is functional for common smart contract patterns. The compiler generat
 | `msg.sender` | ✅ Complete | Signer account |
 | `block.timestamp` | ✅ Complete | Clock sysvar |
 | Rent handling | ✅ Complete | Auto rent-exempt accounts |
-| Direct SOL transfers | ❌ Not implemented | `msg.value` returns 0 |
+| Structs in contracts | ✅ Complete | Define inside or outside contracts |
+| Enums in contracts | ✅ Complete | Define inside or outside contracts |
+| Direct SOL transfers | ✅ Complete | `transfer(to, amount)` built-in |
+| PDA account closing | ✅ Complete | `delete mapping[key]` closes PDAs |
 | Token 2022 | ❌ Not implemented | Only SPL Token |
-| Structs in contracts | ❌ Parser limitation | Define outside contract |
-| Enums in contracts | ❌ Parser limitation | Define outside contract |
-| PDA account closing | ⚠️ Partial | State accounts only, not mappings |
 | Compute budget | ❌ Not implemented | Uses defaults |
 
 ---
 
 ## Known Limitations & Planned Remediations
 
-### 1. No Direct SOL/Lamport Transfers
+### 1. ~~No Direct SOL/Lamport Transfers~~ ✅ IMPLEMENTED in v0.3.0
 
-**Current behavior:** `msg.value` returns 0. Payable functions include `system_program` but don't transfer lamports.
+**Status:** Implemented!
 
-**Impact:** Cannot accept SOL payments or transfer SOL between accounts.
+Use the `transfer(to, amount)` built-in function to transfer SOL:
 
-**Workaround:** Use wrapped SOL (SPL Token) or extend generated Anchor code manually.
+```solidity
+function withdraw(address to, uint64 amount) public {
+    require(msg.sender == owner, "Unauthorized");
+    transfer(to, amount);  // Transfers SOL to recipient
+}
+```
 
-**Planned remediation:**
-- Add `transfer(address to, uint256 lamports)` built-in function
-- Generate proper `system_program::transfer` CPI
-- Support `msg.value` for payable functions with lamport amount
-- Target: v0.3.0
+**How it works:**
+- Generates Anchor `system_program::transfer` CPI
+- Automatically adds `recipient` account to context
+- Validates recipient matches the `to` address
+- Rent is deducted from signer's account
+
+**Note:** `msg.value` still returns 0 for incoming payments. Use SPL Token (wrapped SOL) for receiving payments.
 
 ---
 
@@ -65,69 +72,74 @@ SolScript is functional for common smart contract patterns. The compiler generat
 
 ---
 
-### 3. Structs/Enums Inside Contracts
+### 3. ~~Structs/Enums Inside Contracts~~ ✅ IMPLEMENTED in v0.2.0
 
-**Current behavior:** Parser rejects struct and enum definitions inside contract bodies.
+**Status:** Implemented!
 
-**Impact:** Must define types outside contracts, less encapsulation.
-
-**Workaround:** Define structs and enums before the contract:
+You can now define structs and enums inside contracts:
 
 ```solidity
-// Works
-struct User {
-    address wallet;
-    uint256 balance;
-}
+contract Token {
+    // Struct inside contract
+    struct Balance {
+        uint256 amount;
+        uint64 lastUpdate;
+    }
 
-contract MyContract {
-    mapping(address => User) users;
+    // Enum inside contract
+    enum Status { Active, Paused, Closed }
+
+    mapping(address => Balance) public balances;
+    Status public status;
 }
 ```
 
-**Planned remediation:**
-- Update parser grammar to allow in-contract definitions
-- Generate nested Rust types
-- Target: v0.2.0
+Both inside-contract and outside-contract definitions work seamlessly.
 
 ---
 
-### 4. Empty Error Declarations
+### 4. ~~Empty Error Declarations~~ ✅ IMPLEMENTED in v0.2.0
 
-**Current behavior:** `error Foo();` without parameters fails to parse.
+**Status:** Implemented!
 
-**Impact:** Cannot define simple marker errors.
-
-**Workaround:** Add a dummy parameter:
+You can now define errors with empty parameter lists:
 
 ```solidity
-// Instead of: error Unauthorized();
-error Unauthorized(string reason);
+// All of these work
+error Unauthorized();           // Empty parentheses
+error NotOwner;                 // No parentheses
+error InsufficientBalance(uint256 available, uint256 required);  // With params
 
-// Usage
-revert Unauthorized("Not owner");
+function withdraw() public {
+    if (msg.sender != owner) {
+        revert Unauthorized();
+    }
+}
 ```
-
-**Planned remediation:**
-- Update parser to allow empty error parameters
-- Generate unit-variant error codes
-- Target: v0.2.0
 
 ---
 
-### 5. PDA Account Closing for Mappings
+### 5. ~~PDA Account Closing for Mappings~~ ✅ IMPLEMENTED in v0.3.0
 
-**Current behavior:** `selfdestruct` closes state accounts but not mapping entries.
+**Status:** Implemented!
 
-**Impact:** Cannot reclaim rent from mapping PDAs.
+Use `delete mapping[key]` to close a mapping PDA and reclaim rent:
 
-**Workaround:** Manually extend generated code with close constraints.
+```solidity
+contract UserRegistry {
+    mapping(address => uint64) public scores;
 
-**Planned remediation:**
-- Add `delete mappingName[key]` syntax
-- Generate `close = signer` constraint for mapping entries
-- Refund rent to specified account
-- Target: v0.3.0
+    function removeUser(address user) public {
+        delete scores[user];  // Closes PDA, refunds rent to signer
+    }
+}
+```
+
+**How it works:**
+- Generates `close = signer` account constraint
+- PDA is closed automatically by Anchor
+- Lamports (rent) returned to the transaction signer
+- Works with nested mappings too
 
 ---
 
@@ -194,15 +206,15 @@ revert Unauthorized("Not owner");
 
 ## Release Timeline
 
-### v0.2.0 - Parser Improvements
-- [ ] Structs inside contracts
-- [ ] Enums inside contracts
-- [ ] Empty error declarations
+### v0.2.0 - Parser Improvements ✅ RELEASED
+- [x] Structs inside contracts
+- [x] Enums inside contracts
+- [x] Empty error declarations
 - [ ] Improved error messages
 
-### v0.3.0 - Solana Native Features
-- [ ] Direct SOL transfers (`msg.value`)
-- [ ] PDA account closing for mappings
+### v0.3.0 - Solana Native Features ✅ RELEASED
+- [x] Direct SOL transfers (`transfer(to, amount)`)
+- [x] PDA account closing for mappings (`delete mapping[key]`)
 - [ ] Modifier function generation (not inlining)
 - [ ] Account constraints improvements
 

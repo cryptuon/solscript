@@ -95,13 +95,20 @@ function transferOwnership(address newOwner) public onlyOwner {
 More gas-efficient than string messages:
 
 ```solidity
-// Define custom errors
+// Define custom errors with parameters
 error InsufficientBalance(uint256 available, uint256 required);
 error Unauthorized(address caller);
-error InvalidAddress();
-error TransferFailed();
 error AmountTooLow(uint256 minimum);
+
+// Empty errors (no parameters) - both syntaxes work
+error InvalidAddress();    // With empty parentheses
+error TransferFailed;      // Without parentheses
+error Paused();            // Marker error
 ```
+
+!!! tip "Empty Errors"
+    Empty errors like `error Unauthorized();` are useful as simple marker errors.
+    They're more gas-efficient than string messages and provide clear error types.
 
 ### Using Revert
 

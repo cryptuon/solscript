@@ -94,6 +94,7 @@ pub struct Instruction {
     pub is_view: bool,
     pub is_payable: bool,
     pub uses_token_program: bool,
+    pub uses_sol_transfer: bool,
     pub modifiers: Vec<ModifierCall>,
     /// Mapping accesses needed for this instruction
     pub mapping_accesses: Vec<MappingAccess>,
@@ -110,6 +111,8 @@ pub struct MappingAccess {
     pub key_exprs: Vec<Expression>,
     /// Whether this is a write access (needs init_if_needed)
     pub is_write: bool,
+    /// Whether this access should close the PDA (delete operation)
+    pub should_close: bool,
     /// Generated account name for this access
     pub account_name: String,
 }
@@ -335,6 +338,13 @@ pub enum Expression {
         /// amount
         amount: Box<Expression>,
     },
+    /// Direct SOL transfer via system_program::transfer
+    SolTransfer {
+        /// to account (Pubkey)
+        to: Box<Expression>,
+        /// amount in lamports
+        amount: Box<Expression>,
+    },
     /// Get Associated Token Address
     GetATA {
         /// owner/wallet address
@@ -556,6 +566,7 @@ struct MappingAccessCollector {
     accesses: Vec<MappingAccess>,
     counter: usize,
     uses_token_program: bool,
+    uses_sol_transfer: bool,
 }
 
 impl MappingAccessCollector {
@@ -564,6 +575,7 @@ impl MappingAccessCollector {
             accesses: Vec::new(),
             counter: 0,
             uses_token_program: false,
+            uses_sol_transfer: false,
         }
     }
 
@@ -571,8 +583,12 @@ impl MappingAccessCollector {
         self.uses_token_program = true;
     }
 
+    fn mark_uses_sol_transfer(&mut self) {
+        self.uses_sol_transfer = true;
+    }
+
     /// Record a mapping access and return a unique account name
-    fn record_access(&mut self, mapping_name: &str, keys: Vec<Expression>, is_write: bool) -> String {
+    fn record_access(&mut self, mapping_name: &str, keys: Vec<Expression>, is_write: bool, should_close: bool) -> String {
         // Generate unique account name based on mapping name and counter
         let account_name = format!("{}_entry_{}", to_snake_case(mapping_name), self.counter);
         self.counter += 1;
@@ -581,6 +597,7 @@ impl MappingAccessCollector {
             mapping_name: mapping_name.to_string(),
             key_exprs: keys,
             is_write,
+            should_close,
             account_name: account_name.clone(),
         });
 
@@ -855,6 +872,7 @@ fn lower_function(func: &ast::FnDef, ctx: &LoweringContext) -> Result<Instructio
         is_view,
         is_payable,
         uses_token_program: collector.uses_token_program,
+        uses_sol_transfer: collector.uses_sol_transfer,
         modifiers,
         mapping_accesses: collector.accesses,
         closes_state,
@@ -917,6 +935,7 @@ fn lower_constructor(ctor: &ast::ConstructorDef, ctx: &LoweringContext) -> Resul
         is_view: false,
         is_payable: ctor.modifiers.iter().any(|m| m.name.name == "payable"),
         uses_token_program: collector.uses_token_program,
+        uses_sol_transfer: collector.uses_sol_transfer,
         modifiers: Vec::new(),
         mapping_accesses: collector.accesses,
         closes_state: false, // Constructor never closes state
@@ -1114,7 +1133,20 @@ fn lower_stmt(stmt: &ast::Stmt, ctx: &LoweringContext, collector: &mut MappingAc
                 }
             }
         }
-        ast::Stmt::Delete(d) => Ok(Statement::Delete(lower_expr(&d.target, ctx, collector)?)),
+        ast::Stmt::Delete(d) => {
+            let target = lower_expr(&d.target, ctx, collector)?;
+            // If we're deleting a mapping access, mark it as should_close
+            if let Expression::MappingAccess { account_name, .. } = &target {
+                // Find and update the mapping access to mark it for closing
+                for access in &mut collector.accesses {
+                    if &access.account_name == account_name {
+                        access.should_close = true;
+                        break;
+                    }
+                }
+            }
+            Ok(Statement::Delete(target))
+        }
         ast::Stmt::Selfdestruct(s) => Ok(Statement::Selfdestruct {
             recipient: lower_expr(&s.recipient, ctx, collector)?,
         }),
@@ -1375,6 +1407,17 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                     });
                 }
 
+                // Handle transfer(to, amount) - direct SOL transfer
+                if func_name == "transfer" && c.args.len() == 2 {
+                    collector.mark_uses_sol_transfer();
+                    let to = lower_expr(&c.args[0].value, ctx, collector)?;
+                    let amount = lower_expr(&c.args[1].value, ctx, collector)?;
+                    return Ok(Expression::SolTransfer {
+                        to: Box::new(to),
+                        amount: Box::new(amount),
+                    });
+                }
+
                 Ok(Expression::Call {
                     func: func_name,
                     args: c.args.iter().map(|a| lower_expr(&a.value, ctx, collector)).collect::<Result<Vec<_>, _>>()?,
@@ -1501,8 +1544,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                     .map(|k| lower_expr(k, ctx, collector))
                     .collect::<Result<Vec<_>, _>>()?;
 
-                // Record the mapping access
-                let account_name = collector.record_access(&mapping_name, lowered_keys.clone(), true);
+                // Record the mapping access (not closing)
+                let account_name = collector.record_access(&mapping_name, lowered_keys.clone(), true, false);
                 return Ok(Expression::MappingAccess {
                     mapping_name,
                     keys: lowered_keys,

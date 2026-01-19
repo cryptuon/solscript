@@ -106,6 +106,22 @@ seeds = [b"allowances", owner.as_ref(), spender.as_ref()]
 | First write | `balances[user] = 100` | `init_if_needed` |
 | Read | `balances[user]` | Seeds only |
 | Update | `balances[user] += 50` | `mut` + seeds |
+| Delete | `delete balances[user]` | `close = signer` |
+
+### Closing Mapping PDAs
+
+Use `delete` to close a mapping PDA and reclaim rent:
+
+```solidity
+function removeUser(address user) public {
+    delete balances[user];  // Closes PDA, rent returned to signer
+}
+```
+
+When you delete a mapping entry:
+1. The PDA account is closed by Anchor's `close = signer` constraint
+2. Lamports (rent) are returned to the transaction signer
+3. The account data is zeroed and marked for garbage collection
 
 ## Instructions
 
@@ -227,10 +243,38 @@ SolScript has built-in support for SPL Token:
 
 ```solidity
 // These generate proper CPI calls
-tokenTransfer(from, to, amount);
-tokenMint(mint, to, amount);
-tokenBurn(account, amount);
+token.transfer(from, to, authority, amount);
+token.mint(mint, to, authority, amount);
+token.burn(from, mint, authority, amount);
 ```
+
+### Direct SOL Transfers
+
+Transfer SOL (lamports) using the built-in `transfer` function:
+
+```solidity
+function withdraw(address to, uint64 amount) public {
+    require(msg.sender == owner, "Unauthorized");
+    transfer(to, amount);  // Transfers lamports to recipient
+}
+
+function payBounty(address hunter, uint64 reward) public {
+    require(bounties[hunter] >= reward, "Insufficient bounty");
+    bounties[hunter] -= reward;
+    transfer(hunter, reward);
+}
+```
+
+**How it works:**
+- Generates Anchor `system_program::transfer` CPI
+- Automatically adds `recipient` account to the instruction context
+- Validates that `recipient.key() == to` for security
+- Lamports are deducted from the signer's account
+
+!!! warning "Recipient Account Required"
+    The recipient address must be passed as an account to the transaction.
+    The generated Anchor code includes a `recipient: UncheckedAccount` that
+    must match the `to` address parameter.
 
 ## Built-in Objects
 
@@ -268,28 +312,28 @@ uint64 currentSlot = block.number;
 
 Understanding these helps you work around them:
 
-### No Direct SOL Transfers
+### No Incoming SOL Payments (msg.value)
 
 ```solidity
-// Does NOT work - msg.value returns 0
+// msg.value returns 0 - incoming payments not tracked
 function deposit() public payable {
     // msg.value is always 0
 }
 ```
 
-**Workaround:** Use SPL Token (wrapped SOL) or extend generated Anchor code.
+**Workaround:** Use SPL Token (wrapped SOL) for receiving payments.
+
+!!! tip "Outgoing Transfers Work"
+    While `msg.value` returns 0, you can still **send** SOL using `transfer(to, amount)`.
+    See [Direct SOL Transfers](#direct-sol-transfers) above.
 
 ### No Token 2022
 
-Only SPL Token is supported, not Token 2022 extensions.
-
-### No Struct/Enum Inside Contracts
-
-Parser limitation - define structs outside contracts or use flattened state.
+Only SPL Token is supported, not Token 2022 extensions (transfer fees, interest-bearing, etc.).
 
 ### Modifiers Are Inlined
 
-Modifiers work but are inlined into each function, not generated as reusable validation.
+Modifiers work but are inlined into each function, not generated as reusable validation functions. Keep modifiers small to avoid code bloat.
 
 ## Best Practices
 
@@ -330,6 +374,29 @@ event Transfer(address indexed from, address indexed to, uint256 amount);
 function transfer(address to, uint256 amount) public {
     // ... transfer logic ...
     emit Transfer(msg.sender, to, amount);
+}
+```
+
+### 5. Clean Up Mapping Data
+
+```solidity
+// Reclaim rent when data is no longer needed
+function removeUser(address user) public onlyOwner {
+    delete users[user];  // Closes PDA, refunds rent
+}
+```
+
+### 6. Use Structs for Organization
+
+```solidity
+contract Token {
+    // Define structs inside contracts for encapsulation
+    struct Balance {
+        uint256 amount;
+        uint64 lastUpdate;
+    }
+
+    mapping(address => Balance) public balances;
 }
 ```
 
