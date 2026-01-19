@@ -1,10 +1,15 @@
 [package]
 name = "solscript-ast"
-description = "Abstract Syntax Tree types for SolScript"
+description = "Abstract Syntax Tree types for the SolScript compiler"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 smol_str = { workspace = true }

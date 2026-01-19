@@ -6,7 +6,7 @@
   "publisher": "solscript",
   "repository": {
     "type": "git",
-    "url": "https://github.com/solscript/solscript"
+    "url": "https://github.com/cryptuon/solscript"
   },
   "license": "MIT",
   "engines": {

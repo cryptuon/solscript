@@ -182,13 +182,13 @@ impl PackageManager {
             .ok_or_else(|| miette::miette!("No version specified for package {}", name))?;
 
         // For now, we use a simple GitHub-based registry
-        // Package format: https://github.com/solscript-packages/{name}/releases/download/v{version}/{name}.tar.gz
+        // Package format: https://github.com/cryptuon-packages/{name}/releases/download/v{version}/{name}.tar.gz
         let pkg_dir = self.packages_dir.join(name);
 
         // Try to find the package on GitHub
         // Default organization for SolScript packages
         let github_url = format!(
-            "https://github.com/solscript-packages/{}/archive/refs/tags/v{}.tar.gz",
+            "https://github.com/cryptuon-packages/{}/archive/refs/tags/v{}.tar.gz",
             name, version
         );
 
@@ -209,7 +209,7 @@ impl PackageManager {
         if !output.status.success() {
             // Try alternative URL format
             let alt_url = format!(
-                "https://github.com/solscript/{}/archive/refs/tags/v{}.tar.gz",
+                "https://github.com/cryptuon/{}/archive/refs/tags/v{}.tar.gz",
                 name, version
             );
 

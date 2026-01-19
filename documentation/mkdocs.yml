@@ -1,8 +1,8 @@
 site_name: SolScript Documentation
 site_description: A high-level language for Solana smart contract development
 site_url: https://solscript.dev
-repo_url: https://github.com/solscript/solscript
-repo_name: solscript/solscript
+repo_url: https://github.com/cryptuon/solscript
+repo_name: cryptuon/solscript
 
 theme:
   name: material
@@ -57,7 +57,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/solscript/solscript
+      link: https://github.com/cryptuon/solscript
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/solscript
 

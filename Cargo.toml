@@ -13,9 +13,13 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/solscript/solscript"
+license = "MIT"
+repository = "https://github.com/cryptuon/solscript"
+homepage = "https://github.com/cryptuon/solscript"
+documentation = "https://docs.rs/solscript-cli"
 rust-version = "1.75"
+keywords = ["solana", "solidity", "blockchain", "smart-contracts", "compiler"]
+categories = ["compilers", "development-tools", "cryptography::cryptocurrencies"]
 
 [workspace.dependencies]
 # Internal crates

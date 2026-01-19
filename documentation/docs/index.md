@@ -123,14 +123,14 @@ SolScript handles most common patterns, but some Solana features require workaro
 cargo install solscript
 
 # Or build from source
-git clone https://github.com/solscript/solscript
+git clone https://github.com/cryptuon/solscript
 cd solscript
 cargo install --path crates/solscript-cli
 ```
 
 ## Community
 
-- [GitHub](https://github.com/solscript/solscript) - Source code and issues
+- [GitHub](https://github.com/cryptuon/solscript) - Source code and issues
 - [Discord](#) - Community chat
 - [Twitter](https://twitter.com/solscript) - Updates and announcements
 

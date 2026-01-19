@@ -5,18 +5,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-
-[dependencies]
-solscript-ast = { workspace = true }
-solscript-parser = { workspace = true }
-solscript-typeck = { workspace = true }
-
-tower-lsp = "0.20"
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { workspace = true }
-dashmap = "5.5"
-ropey = "1.6"
+homepage.workspace = true
+rust-version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [lib]
 name = "solscript_lsp"
@@ -25,3 +18,14 @@ path = "src/lib.rs"
 [[bin]]
 name = "solscript-lsp"
 path = "src/main.rs"
+
+[dependencies]
+solscript-ast = { workspace = true }
+solscript-parser = { workspace = true }
+solscript-typeck = { workspace = true }
+tower-lsp = "0.20"
+tokio = { version = "1.0", features = ["full"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dashmap = "5.5"
+ropey = "1.6"

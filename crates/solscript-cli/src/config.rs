@@ -250,7 +250,7 @@ token = { github = "solscript/token-lib", tag = "v1.0.0" }
         assert!(dep.is_git());
         assert_eq!(
             dep.git_url(),
-            Some("https://github.com/solscript/token-lib.git".to_string())
+            Some("https://github.com/cryptuon/token-lib.git".to_string())
         );
     }
 

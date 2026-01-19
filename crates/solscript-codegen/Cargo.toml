@@ -1,16 +1,21 @@
 [package]
 name = "solscript-codegen"
-description = "Rust/Anchor code generator for SolScript"
+description = "Rust/Anchor code generator for SolScript smart contracts"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [dependencies]
 solscript-ast = { workspace = true }
 thiserror = { workspace = true }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 solscript-parser = { workspace = true }

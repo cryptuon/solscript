@@ -22,7 +22,7 @@ cargo install solscript
 ### From Source
 
 ```bash
-git clone https://github.com/solscript/solscript
+git clone https://github.com/cryptuon/solscript
 cd solscript
 cargo install --path crates/solscript-cli
 ```

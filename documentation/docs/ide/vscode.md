@@ -15,7 +15,7 @@ SolScript provides a VS Code extension for an enhanced development experience.
 
 ```bash
 # Download the extension
-curl -L -o solscript.vsix https://github.com/solscript/vscode/releases/latest/download/solscript.vsix
+curl -L -o solscript.vsix https://github.com/cryptuon/solscript/releases/latest/download/solscript.vsix
 
 # Install
 code --install-extension solscript.vsix

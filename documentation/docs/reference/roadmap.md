@@ -241,7 +241,7 @@ We welcome contributions! Priority areas:
 3. **Testing** - Integration tests for all features
 4. **Documentation** - Examples and tutorials
 
-See [CONTRIBUTING.md](https://github.com/solscript/solscript/blob/main/CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](https://github.com/cryptuon/solscript/blob/main/CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -249,5 +249,5 @@ See [CONTRIBUTING.md](https://github.com/solscript/solscript/blob/main/CONTRIBUT
 
 Found a bug or have a feature request?
 
-- [GitHub Issues](https://github.com/solscript/solscript/issues) - Bug reports and features
-- [Discussions](https://github.com/solscript/solscript/discussions) - Questions and ideas
+- [GitHub Issues](https://github.com/cryptuon/solscript/issues) - Bug reports and features
+- [Discussions](https://github.com/cryptuon/solscript/discussions) - Questions and ideas

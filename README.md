@@ -82,7 +82,7 @@ contract Token {
 
 ```bash
 # Install
-cargo install --git https://github.com/panicinc/solscript solscript-cli
+cargo install --git https://github.com/cryptuon/solscript solscript-cli
 
 # Create a project
 solscript init my-token
