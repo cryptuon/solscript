@@ -105,12 +105,16 @@ function add(uint256 a, uint256 b) public pure returns (uint256) { }
 
 SolScript provides several built-in objects:
 
-| Object | Description |
-|--------|-------------|
-| `msg.sender` | Transaction signer |
-| `msg.value` | SOL amount sent |
-| `block.timestamp` | Current block timestamp |
-| `block.number` | Current slot number |
+| Object | Description | Status |
+|--------|-------------|--------|
+| `msg.sender` | Transaction signer | ✅ Works |
+| `msg.value` | SOL amount sent | ⚠️ Returns 0 (see [limitations](../reference/roadmap.md)) |
+| `block.timestamp` | Current Unix timestamp | ✅ Works |
+| `block.number` | Current Solana slot | ✅ Works |
+
+!!! warning "msg.value Limitation"
+    `msg.value` currently returns 0. Direct SOL transfers are not yet supported.
+    Use wrapped SOL (SPL Token) for value transfers. See the [roadmap](../reference/roadmap.md) for planned improvements.
 
 ### Control Flow
 
@@ -162,16 +166,18 @@ if (balance < amount) {
 SolScript automatically handles Solana's account model:
 
 ```solidity
-// Mappings become PDAs
+// Mappings become PDAs automatically
 mapping(address => uint256) public balances;
 
-// Access like normal
-balances[user] = 100;
+// Access like normal Solidity - SolScript handles PDA derivation
+balances[user] = 100;  // Creates PDA with seeds [b"balances", user]
 ```
+
+This is SolScript's most powerful feature - you write Solidity-style mappings and get proper Solana PDAs.
 
 ### Cross-Program Invocation (CPI)
 
-Call other Solana programs:
+Call other Solana programs via interfaces:
 
 ```solidity
 interface ITokenProgram {
@@ -179,24 +185,45 @@ interface ITokenProgram {
 }
 
 contract MyContract {
-    ITokenProgram token;
-
-    function sendTokens(address to, uint256 amount) public {
-        token.transfer(msg.sender, to, amount);
+    function sendTokens(address token, address to, uint256 amount) public {
+        ITokenProgram(token).transfer(msg.sender, to, amount);
     }
 }
 ```
 
+### SPL Token Built-ins
+
+SolScript has native SPL Token support:
+
+```solidity
+// These generate proper CPI calls to SPL Token program
+tokenTransfer(from, to, amount);
+tokenMint(mint, to, amount);
+tokenBurn(account, amount);
+```
+
 ### Signers
 
-Require transaction signatures:
+Require additional transaction signatures:
 
 ```solidity
 function withdraw(signer authority, uint256 amount) public {
     require(authority == owner, "Unauthorized");
-    // ...
+    // authority becomes a Signer<'info> in generated Anchor code
 }
 ```
+
+### Time-Based Logic
+
+Access Solana's clock sysvar:
+
+```solidity
+function isExpired(uint64 deadline) public view returns (bool) {
+    return block.timestamp >= deadline;
+}
+```
+
+For more details, see [Solana Concepts](solana-concepts.md).
 
 ## Type System
 

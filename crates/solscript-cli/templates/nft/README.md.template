@@ -1,0 +1,37 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## Contract Interface
+
+### State Variables
+- `name` / `symbol` - Collection metadata
+- `totalSupply` / `maxSupply` - Supply tracking
+- `mintPrice` - Cost to mint
+- `ownerOf` / `balanceOf` - Ownership tracking
+- `getApproved` / `isApprovedForAll` - Approvals
+
+### Functions
+- `mint()` - Mint new NFT (payable)
+- `ownerMint(to)` - Free mint (owner only)
+- `transferFrom(from, to, tokenId)` - Transfer NFT
+- `approve(to, tokenId)` - Approve single token
+- `setApprovalForAll(operator, approved)` - Approve all
+- `setMintingEnabled(enabled)` - Toggle minting
+- `setMintPrice(price)` - Update price
+
+## Build & Deploy
+
+```bash
+solscript build src/main.sol -o ./output
+solscript deploy src/main.sol --cluster devnet
+```
+
+## License
+
+MIT

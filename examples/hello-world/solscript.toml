@@ -1,0 +1,10 @@
+[package]
+name = "hello-world"
+version = "0.1.0"
+description = "Your first SolScript contract"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

@@ -45,6 +45,8 @@ contract_member = {
   | function_def
   | event_def
   | error_def
+  | struct_def
+  | enum_def
   | state_var
 }
 
@@ -110,7 +112,7 @@ event_param = { type_expr ~ indexed_kw? ~ ident }
 indexed_kw = { "indexed" }
 
 error_def = {
-    "error" ~ ident ~ ("(" ~ error_param ~ ("," ~ error_param)* ~ ","? ~ ")")? ~ ";"
+    "error" ~ ident ~ ("(" ~ (error_param ~ ("," ~ error_param)* ~ ","?)? ~ ")")? ~ ";"
 }
 error_param = { type_expr ~ ident }
 

@@ -1,0 +1,49 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## Contract Interface
+
+### State Variables
+- `name` - Token name
+- `symbol` - Token symbol
+- `decimals` - Decimal places (default: 9)
+- `totalSupply` - Total tokens in circulation
+- `balanceOf` - Token balance per address
+- `allowance` - Approved spending amounts
+- `owner` - Contract owner
+- `paused` - Whether transfers are paused
+
+### Functions
+- `transfer(to, amount)` - Transfer tokens
+- `approve(spender, amount)` - Approve spending
+- `transferFrom(from, to, amount)` - Transfer using allowance
+- `mint(to, amount)` - Mint new tokens (owner only)
+- `burn(amount)` - Burn your tokens
+- `pause()` / `unpause()` - Toggle transfers (owner only)
+
+### Events
+- `Transfer(from, to, value)` - Token transfer
+- `Approval(owner, spender, value)` - Approval granted
+- `Mint(to, amount)` / `Burn(from, amount)` - Supply changes
+
+## Build
+
+```bash
+solscript build src/main.sol -o ./output
+```
+
+## Deploy
+
+```bash
+solscript deploy src/main.sol --cluster devnet
+```
+
+## License
+
+MIT

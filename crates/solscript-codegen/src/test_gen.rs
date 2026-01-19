@@ -173,7 +173,11 @@ describe("{}", () => {{
             }
             SolanaType::Option(_) => "null".to_string(),
             SolanaType::Mapping(_, _) => "new Map()".to_string(),
-            SolanaType::Custom(type_name) => format!("{{}} // TODO: create {} instance", type_name),
+            SolanaType::Custom(type_name) => {
+                // Generate a placeholder object for custom types
+                // In real usage, this should be filled with actual field values
+                format!("{{ /* {} instance - fill in fields */ }}", type_name)
+            }
         }
     }
 }

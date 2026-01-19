@@ -3,15 +3,29 @@
 use crate::intrinsics::Intrinsics;
 use crate::types::TypeMapper;
 use crate::{BpfError, Result};
+use inkwell::attributes::AttributeLoc;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::{BasicType, BasicTypeEnum};
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
+use inkwell::values::{BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::AddressSpace;
 use inkwell::IntPredicate;
 use solscript_ast::*;
 use std::collections::HashMap;
+
+/// Information about a compiled function for dispatch
+#[derive(Clone)]
+struct FunctionInfo<'ctx> {
+    /// Original function name
+    name: String,
+    /// Mangled function name
+    mangled_name: String,
+    /// 8-byte Anchor-style discriminator
+    discriminator: [u8; 8],
+    /// LLVM function value
+    function: FunctionValue<'ctx>,
+}
 
 /// The main compiler that generates LLVM IR from SolScript AST
 pub struct Compiler<'a, 'ctx> {
@@ -24,14 +38,26 @@ pub struct Compiler<'a, 'ctx> {
     /// Current function being compiled
     current_function: Option<FunctionValue<'ctx>>,
 
-    /// Local variables in the current scope
+    /// Local variables in the current scope (name -> pointer)
     variables: HashMap<String, PointerValue<'ctx>>,
+
+    /// Local variable types (name -> type) for proper loading
+    variable_types: HashMap<String, BasicTypeEnum<'ctx>>,
+
+    /// Variable struct type names (variable_name -> struct_type_name)
+    variable_struct_names: HashMap<String, String>,
 
     /// State variables (contract storage)
     state_vars: HashMap<String, (PointerValue<'ctx>, BasicTypeEnum<'ctx>)>,
 
+    /// State variable struct type names
+    state_var_struct_names: HashMap<String, String>,
+
     /// Current contract name
     current_contract: Option<String>,
+
+    /// Compiled functions for entrypoint dispatch
+    compiled_functions: Vec<FunctionInfo<'ctx>>,
 }
 
 impl<'a, 'ctx> Compiler<'a, 'ctx> {
@@ -51,9 +77,37 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             intrinsics,
             current_function: None,
             variables: HashMap::new(),
+            variable_types: HashMap::new(),
+            variable_struct_names: HashMap::new(),
             state_vars: HashMap::new(),
+            state_var_struct_names: HashMap::new(),
             current_contract: None,
+            compiled_functions: Vec::new(),
         }
+    }
+
+    /// Compute Anchor-style discriminator for a function name
+    /// This is the first 8 bytes of sha256("global:<method_name>")
+    fn compute_discriminator(name: &str) -> [u8; 8] {
+        use sha2::{Sha256, Digest};
+        let preimage = format!("global:{}", name);
+        let hash = Sha256::digest(preimage.as_bytes());
+        let mut discriminator = [0u8; 8];
+        discriminator.copy_from_slice(&hash[..8]);
+        discriminator
+    }
+
+    /// Add BPF-specific attributes to a function to disable exception handling
+    fn add_bpf_function_attrs(&self, function: FunctionValue<'ctx>) {
+        // Add nounwind attribute to disable unwind tables/eh_frame generation
+        let nounwind_kind = inkwell::attributes::Attribute::get_named_enum_kind_id("nounwind");
+        let nounwind_attr = self.context.create_enum_attribute(nounwind_kind, 0);
+        function.add_attribute(AttributeLoc::Function, nounwind_attr);
+
+        // Add norecurse to help optimizer
+        let norecurse_kind = inkwell::attributes::Attribute::get_named_enum_kind_id("norecurse");
+        let norecurse_attr = self.context.create_enum_attribute(norecurse_kind, 0);
+        function.add_attribute(AttributeLoc::Function, norecurse_attr);
     }
 
     /// Compile an entire program
@@ -156,18 +210,32 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             (global.as_pointer_value(), ty),
         );
 
+        // Track struct type name if this is a struct type
+        if let solscript_ast::TypeExpr::Path(path) = &var.ty {
+            let type_name = path.name();
+            if self.type_mapper.get_struct(&type_name).is_some() {
+                self.state_var_struct_names.insert(var.name.name.to_string(), type_name.to_string());
+            }
+        }
+
         Ok(())
     }
 
     /// Declare a struct type
     fn declare_struct(&mut self, s: &StructDef) -> Result<()> {
+        let field_names: Vec<String> = s
+            .fields
+            .iter()
+            .map(|f| f.name.name.to_string())
+            .collect();
+
         let field_types: Vec<BasicTypeEnum> = s
             .fields
             .iter()
             .map(|f| self.type_mapper.get_type(&f.ty))
             .collect();
 
-        self.type_mapper.register_struct(&s.name.name, &field_types);
+        self.type_mapper.register_struct(&s.name.name, &field_names, &field_types);
         Ok(())
     }
 
@@ -191,6 +259,9 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         let fn_name = self.mangle_function_name(&f.name.name);
         let function = self.module.add_function(&fn_name, fn_type, None);
 
+        // Add BPF-specific attributes to disable exception handling
+        self.add_bpf_function_attrs(function);
+
         Ok(function)
     }
 
@@ -208,6 +279,9 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         let fn_name = self.mangle_function_name("constructor");
         let function = self.module.add_function(&fn_name, fn_type, None);
 
+        // Add BPF-specific attributes to disable exception handling
+        self.add_bpf_function_attrs(function);
+
         Ok(function)
     }
 
@@ -219,6 +293,8 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
         self.current_function = Some(function);
         self.variables.clear();
+        self.variable_types.clear();
+        self.variable_struct_names.clear();
 
         // Create entry block
         let entry = self.context.append_basic_block(function, "entry");
@@ -237,6 +313,15 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
             self.variables.insert(param.name.name.to_string(), alloca);
+            self.variable_types.insert(param.name.name.to_string(), ty);
+
+            // Track struct type name if this is a struct type
+            if let solscript_ast::TypeExpr::Path(path) = &param.ty {
+                let type_name = path.name();
+                if self.type_mapper.get_struct(&type_name).is_some() {
+                    self.variable_struct_names.insert(param.name.name.to_string(), type_name.to_string());
+                }
+            }
         }
 
         // Compile function body
@@ -252,6 +337,18 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             }
         }
 
+        // Track this function for entrypoint dispatch (skip view functions for now)
+        let is_view = f.modifiers.iter().any(|m| m.name.name == "view" || m.name.name == "pure");
+        if !is_view {
+            let discriminator = Self::compute_discriminator(&f.name.name);
+            self.compiled_functions.push(FunctionInfo {
+                name: f.name.name.to_string(),
+                mangled_name: fn_name,
+                discriminator,
+                function,
+            });
+        }
+
         self.current_function = None;
         Ok(())
     }
@@ -264,6 +361,8 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
         self.current_function = Some(function);
         self.variables.clear();
+        self.variable_types.clear();
+        self.variable_struct_names.clear();
 
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
@@ -281,6 +380,15 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
             self.variables.insert(param.name.name.to_string(), alloca);
+            self.variable_types.insert(param.name.name.to_string(), ty);
+
+            // Track struct type name if this is a struct type
+            if let solscript_ast::TypeExpr::Path(path) = &param.ty {
+                let type_name = path.name();
+                if self.type_mapper.get_struct(&type_name).is_some() {
+                    self.variable_struct_names.insert(param.name.name.to_string(), type_name.to_string());
+                }
+            }
         }
 
         // Compile constructor body
@@ -290,6 +398,15 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             self.builder.build_return(None)
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
         }
+
+        // Track constructor for entrypoint dispatch (uses "initialize" as Anchor convention)
+        let discriminator = Self::compute_discriminator("initialize");
+        self.compiled_functions.push(FunctionInfo {
+            name: "constructor".to_string(),
+            mangled_name: fn_name,
+            discriminator,
+            function,
+        });
 
         self.current_function = None;
         Ok(())
@@ -307,36 +424,49 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
     fn compile_statement(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::VarDecl(decl) => self.compile_var_decl(decl),
-            Stmt::Expr(expr) => {
-                self.compile_expr(expr)?;
+            Stmt::Expr(expr_stmt) => {
+                // Handle assignment expressions specially
+                if let Expr::Assign(assign) = &expr_stmt.expr {
+                    self.compile_assignment(assign)?;
+                } else {
+                    self.compile_expr(&expr_stmt.expr)?;
+                }
                 Ok(())
             }
             Stmt::Return(ret) => self.compile_return(ret),
             Stmt::If(if_stmt) => self.compile_if(if_stmt),
             Stmt::While(while_stmt) => self.compile_while(while_stmt),
             Stmt::For(for_stmt) => self.compile_for(for_stmt),
-            Stmt::Block(block) => self.compile_block(block),
             Stmt::Emit(emit) => self.compile_emit(emit),
             Stmt::Require(req) => self.compile_require(req),
             Stmt::Revert(rev) => self.compile_revert(rev),
-            Stmt::Assignment(assign) => self.compile_assignment(assign),
             _ => Ok(()), // Skip unsupported statements for now
         }
     }
 
     /// Compile a variable declaration
-    fn compile_var_decl(&mut self, decl: &VarDecl) -> Result<()> {
+    fn compile_var_decl(&mut self, decl: &VarDeclStmt) -> Result<()> {
         let ty = self.type_mapper.get_type(&decl.ty);
         let alloca = self.builder.build_alloca(ty, &decl.name.name)
             .map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
-        if let Some(init) = &decl.init {
+        if let Some(init) = &decl.initializer {
             let value = self.compile_expr(init)?;
             self.builder.build_store(alloca, value)
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
         }
 
         self.variables.insert(decl.name.name.to_string(), alloca);
+        self.variable_types.insert(decl.name.name.to_string(), ty);
+
+        // Track struct type name if this is a struct type
+        if let solscript_ast::TypeExpr::Path(path) = &decl.ty {
+            let type_name = path.name();
+            if self.type_mapper.get_struct(&type_name).is_some() {
+                self.variable_struct_names.insert(decl.name.name.to_string(), type_name.to_string());
+            }
+        }
+
         Ok(())
     }
 
@@ -375,7 +505,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
         // Then branch
         self.builder.position_at_end(then_bb);
-        self.compile_block(&if_stmt.then_branch)?;
+        self.compile_block(&if_stmt.then_block)?;
         if self.builder.get_insert_block().unwrap().get_terminator().is_none() {
             self.builder.build_unconditional_branch(merge_bb)
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
@@ -384,9 +514,9 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         // Else branch
         self.builder.position_at_end(else_bb);
         if let Some(else_branch) = &if_stmt.else_branch {
-            match else_branch.as_ref() {
-                ElseBranch::Block(block) => self.compile_block(block)?,
-                ElseBranch::If(nested_if) => self.compile_if(nested_if)?,
+            match else_branch {
+                ElseBranch::Else(block) => self.compile_block(block)?,
+                ElseBranch::ElseIf(nested_if) => self.compile_if(nested_if)?,
             }
         }
         if self.builder.get_insert_block().unwrap().get_terminator().is_none() {
@@ -441,7 +571,10 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
         // Initialize
         if let Some(init) = &for_stmt.init {
-            self.compile_statement(init)?;
+            match init {
+                ForInit::VarDecl(decl) => self.compile_var_decl(decl)?,
+                ForInit::Expr(expr) => { self.compile_expr(expr)?; }
+            }
         }
 
         let cond_bb = self.context.append_basic_block(function, "for.cond");
@@ -477,10 +610,10 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
         }
 
-        // Increment
+        // Update (increment)
         self.builder.position_at_end(incr_bb);
-        if let Some(incr) = &for_stmt.increment {
-            self.compile_expr(incr)?;
+        if let Some(update) = &for_stmt.update {
+            self.compile_expr(update)?;
         }
         self.builder.build_unconditional_branch(cond_bb)
             .map_err(|e| BpfError::LlvmError(e.to_string()))?;
@@ -489,21 +622,37 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         Ok(())
     }
 
-    /// Compile an assignment
-    fn compile_assignment(&mut self, assign: &AssignmentStmt) -> Result<()> {
+    /// Compile an assignment expression
+    fn compile_assignment(&mut self, assign: &AssignExpr) -> Result<()> {
         let value = self.compile_expr(&assign.value)?;
 
         // Get the target pointer
         let ptr = self.compile_lvalue(&assign.target)?;
 
         // Handle compound assignment operators
-        let final_value = match &assign.op {
-            Some(op) => {
+        let final_value = match assign.op {
+            AssignOp::Assign => value,
+            AssignOp::AddAssign => {
                 let current = self.builder.build_load(value.get_type(), ptr, "load")
                     .map_err(|e| BpfError::LlvmError(e.to_string()))?;
-                self.compile_binary_op(op, current, value)?
+                self.compile_binary_op(&BinaryOp::Add, current, value)?
             }
-            None => value,
+            AssignOp::SubAssign => {
+                let current = self.builder.build_load(value.get_type(), ptr, "load")
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+                self.compile_binary_op(&BinaryOp::Sub, current, value)?
+            }
+            AssignOp::MulAssign => {
+                let current = self.builder.build_load(value.get_type(), ptr, "load")
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+                self.compile_binary_op(&BinaryOp::Mul, current, value)?
+            }
+            AssignOp::DivAssign => {
+                let current = self.builder.build_load(value.get_type(), ptr, "load")
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+                self.compile_binary_op(&BinaryOp::Div, current, value)?
+            }
+            _ => value, // Handle other compound assignments as simple assignment for now
         };
 
         self.builder.build_store(ptr, final_value)
@@ -517,32 +666,53 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         match expr {
             Expr::Ident(ident) => {
                 // Check local variables first
-                if let Some(ptr) = self.variables.get(&ident.name) {
+                if let Some(ptr) = self.variables.get(ident.name.as_str()) {
                     return Ok(*ptr);
                 }
                 // Then state variables
-                if let Some((ptr, _)) = self.state_vars.get(&ident.name) {
+                if let Some((ptr, _)) = self.state_vars.get(ident.name.as_str()) {
                     return Ok(*ptr);
                 }
                 Err(BpfError::CodegenError(format!("Undefined variable: {}", ident.name)))
             }
             Expr::FieldAccess(access) => {
                 // Handle field access (e.g., struct.field)
-                let base_ptr = self.compile_lvalue(&access.object)?;
-                // TODO: Compute field offset
+                let base_ptr = self.compile_lvalue(&access.expr)?;
+
+                // Get the struct type name from the base expression
+                if let Some(struct_name) = self.get_expr_struct_name(&access.expr) {
+                    // Look up the field index
+                    if let Some((field_idx, _field_ty)) = self.type_mapper.get_field_index(&struct_name, &access.field.name) {
+                        // Get the struct type
+                        if let Some(struct_ty) = self.type_mapper.get_struct(&struct_name) {
+                            // Build GEP to get field pointer
+                            return self.builder.build_struct_gep(
+                                struct_ty,
+                                base_ptr,
+                                field_idx,
+                                &format!("{}.{}.ptr", struct_name, access.field.name),
+                            ).map_err(|e| BpfError::LlvmError(e.to_string()));
+                        }
+                    }
+                }
+
+                // Fallback: return base pointer if we can't resolve the struct
                 Ok(base_ptr)
             }
             Expr::Index(index) => {
                 // Handle array indexing
-                let base_ptr = self.compile_lvalue(&index.object)?;
+                let base_ptr = self.compile_lvalue(&index.expr)?;
                 let idx = self.compile_expr(&index.index)?;
 
-                self.builder.build_gep(
-                    self.context.i64_type(),
-                    base_ptr,
-                    &[idx.into_int_value()],
-                    "arrayidx",
-                ).map_err(|e| BpfError::LlvmError(e.to_string()))
+                // SAFETY: GEP is safe when indices are within bounds
+                unsafe {
+                    self.builder.build_gep(
+                        self.context.i64_type(),
+                        base_ptr,
+                        &[idx.into_int_value()],
+                        "arrayidx",
+                    ).map_err(|e| BpfError::LlvmError(e.to_string()))
+                }
             }
             _ => Err(BpfError::CodegenError("Invalid lvalue".to_string())),
         }
@@ -655,48 +825,62 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
     /// Compile a literal
     fn compile_literal(&mut self, lit: &Literal) -> Result<BasicValueEnum<'ctx>> {
         match lit {
-            Literal::Integer(n) => {
+            Literal::Int(n, _) => {
                 Ok(self.context.i64_type().const_int(*n as u64, false).into())
             }
-            Literal::Bool(b) => {
+            Literal::HexInt(s, _) => {
+                let n = u128::from_str_radix(s.trim_start_matches("0x"), 16).unwrap_or(0);
+                Ok(self.context.i64_type().const_int(n as u64, false).into())
+            }
+            Literal::Bool(b, _) => {
                 Ok(self.context.bool_type().const_int(*b as u64, false).into())
             }
-            Literal::String(s) => {
+            Literal::String(s, _) => {
                 let str_const = self.context.const_string(s.as_bytes(), false);
                 let global = self.module.add_global(str_const.get_type(), None, "str");
                 global.set_initializer(&str_const);
                 Ok(global.as_pointer_value().into())
             }
-            Literal::Address(addr) => {
+            Literal::HexString(s, _) => {
+                let bytes = hex::decode(s.trim_start_matches("0x")).unwrap_or_default();
+                let values: Vec<_> = bytes.iter()
+                    .map(|b| self.context.i8_type().const_int(*b as u64, false))
+                    .collect();
+                Ok(self.context.i8_type().const_array(&values).into())
+            }
+            Literal::Address(addr, _) => {
                 // Address is 32 bytes
                 let bytes: Vec<u8> = if addr.starts_with("0x") {
                     hex::decode(&addr[2..]).unwrap_or_else(|_| vec![0; 32])
                 } else {
                     vec![0; 32]
                 };
-                let arr_type = self.context.i8_type().array_type(32);
                 let values: Vec<_> = bytes.iter()
                     .map(|b| self.context.i8_type().const_int(*b as u64, false))
                     .collect();
                 Ok(self.context.i8_type().const_array(&values).into())
             }
-            _ => Ok(self.context.i64_type().const_int(0, false).into()),
         }
     }
 
     /// Compile an identifier
     fn compile_ident(&mut self, ident: &Ident) -> Result<BasicValueEnum<'ctx>> {
+        let name_str = ident.name.as_str();
+
         // Check local variables first
-        if let Some(ptr) = self.variables.get(&ident.name) {
-            let ty = self.context.i64_type(); // TODO: Get actual type
-            let value = self.builder.build_load(ty, *ptr, &ident.name)
+        if let Some(ptr) = self.variables.get(name_str) {
+            // Get the actual type from our tracking, fallback to i64 if not found
+            let ty = self.variable_types.get(name_str)
+                .cloned()
+                .unwrap_or_else(|| self.context.i64_type().into());
+            let value = self.builder.build_load(ty, *ptr, name_str)
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
             return Ok(value);
         }
 
         // Check state variables
-        if let Some((ptr, ty)) = self.state_vars.get(&ident.name) {
-            let value = self.builder.build_load(*ty, *ptr, &ident.name)
+        if let Some((ptr, ty)) = self.state_vars.get(name_str) {
+            let value = self.builder.build_load(*ty, *ptr, name_str)
                 .map_err(|e| BpfError::LlvmError(e.to_string()))?;
             return Ok(value);
         }
@@ -726,7 +910,12 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             BinaryOp::Sub => self.builder.build_int_sub(lhs, rhs, "sub"),
             BinaryOp::Mul => self.builder.build_int_mul(lhs, rhs, "mul"),
             BinaryOp::Div => self.builder.build_int_unsigned_div(lhs, rhs, "div"),
-            BinaryOp::Mod => self.builder.build_int_unsigned_rem(lhs, rhs, "mod"),
+            BinaryOp::Rem => self.builder.build_int_unsigned_rem(lhs, rhs, "rem"),
+            BinaryOp::Exp => {
+                // Exponentiation - use repeated multiplication for simplicity
+                // For now, just return the base for non-constant exponents
+                self.builder.build_int_mul(lhs, lhs, "exp") // Placeholder: x^2
+            }
             BinaryOp::Eq => self.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "eq"),
             BinaryOp::Ne => self.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "ne"),
             BinaryOp::Lt => self.builder.build_int_compare(IntPredicate::ULT, lhs, rhs, "lt"),
@@ -740,7 +929,6 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             BinaryOp::BitXor => self.builder.build_xor(lhs, rhs, "bitxor"),
             BinaryOp::Shl => self.builder.build_left_shift(lhs, rhs, "shl"),
             BinaryOp::Shr => self.builder.build_right_shift(lhs, rhs, false, "shr"),
-            _ => return Err(BpfError::Unsupported(format!("Binary op: {:?}", op))),
         }.map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
         Ok(result.into())
@@ -748,8 +936,9 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
     /// Compile a unary expression
     fn compile_unary(&mut self, unary: &UnaryExpr) -> Result<BasicValueEnum<'ctx>> {
-        let operand = self.compile_expr(&unary.operand)?;
+        let operand = self.compile_expr(&unary.expr)?;
         let int_val = operand.into_int_value();
+        let one = int_val.get_type().const_int(1, false);
 
         let result = match unary.op {
             UnaryOp::Neg => {
@@ -764,6 +953,18 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
                 self.builder.build_not(int_val, "bitnot")
                     .map_err(|e| BpfError::LlvmError(e.to_string()))?
             }
+            UnaryOp::PreInc | UnaryOp::PostInc => {
+                // Pre/post increment: x + 1
+                // Note: For proper semantics, we'd need to handle lvalue update
+                // For now, just return the incremented value
+                self.builder.build_int_add(int_val, one, "inc")
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?
+            }
+            UnaryOp::PreDec | UnaryOp::PostDec => {
+                // Pre/post decrement: x - 1
+                self.builder.build_int_sub(int_val, one, "dec")
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?
+            }
         };
 
         Ok(result.into())
@@ -771,11 +972,11 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
     /// Compile a function call
     fn compile_call(&mut self, call: &CallExpr) -> Result<BasicValueEnum<'ctx>> {
-        let fn_name = match &*call.function {
+        let fn_name = match &call.callee {
             Expr::Ident(ident) => ident.name.clone(),
             Expr::FieldAccess(access) => {
                 // Handle method calls like msg.sender
-                if let Expr::Ident(obj) = &*access.object {
+                if let Expr::Ident(obj) = &access.expr {
                     if obj.name == "msg" && access.field.name == "sender" {
                         // Return a placeholder for msg.sender
                         return Ok(self.context.i8_type().array_type(32).const_zero().into());
@@ -790,7 +991,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
         if let Some(function) = self.module.get_function(&mangled_name) {
             let args: Result<Vec<_>> = call.args.iter()
-                .map(|arg| self.compile_expr(arg).map(|v| v.into()))
+                .map(|arg| self.compile_expr(&arg.value).map(|v| v.into()))
                 .collect();
             let args = args?;
 
@@ -808,7 +1009,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
     /// Compile field access
     fn compile_field_access(&mut self, access: &FieldAccessExpr) -> Result<BasicValueEnum<'ctx>> {
         // Handle special cases like msg.sender
-        if let Expr::Ident(obj) = &*access.object {
+        if let Expr::Ident(obj) = &access.expr {
             if obj.name == "msg" {
                 match access.field.name.as_str() {
                     "sender" => {
@@ -834,23 +1035,54 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             }
         }
 
-        // Regular field access
-        let base = self.compile_expr(&access.object)?;
-        // TODO: Implement proper struct field access
-        Ok(base)
+        // Regular struct field access
+        // First, get the struct type name
+        if let Some(struct_name) = self.get_expr_struct_name(&access.expr) {
+            // Look up the field index and type
+            if let Some((field_idx, field_ty)) = self.type_mapper.get_field_index(&struct_name, &access.field.name) {
+                // Get a pointer to the struct
+                let base_ptr = self.compile_lvalue(&access.expr)?;
+
+                // Get the struct type
+                if let Some(struct_ty) = self.type_mapper.get_struct(&struct_name) {
+                    // Build GEP to get field pointer
+                    let field_ptr = self.builder.build_struct_gep(
+                        struct_ty,
+                        base_ptr,
+                        field_idx,
+                        &format!("{}.{}.ptr", struct_name, access.field.name),
+                    ).map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+                    // Load the field value
+                    let value = self.builder.build_load(
+                        field_ty,
+                        field_ptr,
+                        &format!("{}.{}", struct_name, access.field.name),
+                    ).map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+                    return Ok(value);
+                }
+            }
+        }
+
+        // Fallback: if we can't resolve the struct, try to compile as a regular expression
+        self.compile_expr(&access.expr)
     }
 
     /// Compile array indexing
     fn compile_index(&mut self, index: &IndexExpr) -> Result<BasicValueEnum<'ctx>> {
-        let base_ptr = self.compile_lvalue(&index.object)?;
+        let base_ptr = self.compile_lvalue(&index.expr)?;
         let idx = self.compile_expr(&index.index)?;
 
-        let elem_ptr = self.builder.build_gep(
-            self.context.i64_type(),
-            base_ptr,
-            &[idx.into_int_value()],
-            "arrayidx",
-        ).map_err(|e| BpfError::LlvmError(e.to_string()))?;
+        // SAFETY: GEP is safe when indices are within bounds
+        let elem_ptr = unsafe {
+            self.builder.build_gep(
+                self.context.i64_type(),
+                base_ptr,
+                &[idx.into_int_value()],
+                "arrayidx",
+            ).map_err(|e| BpfError::LlvmError(e.to_string()))?
+        };
 
         let value = self.builder.build_load(self.context.i64_type(), elem_ptr, "load")
             .map_err(|e| BpfError::LlvmError(e.to_string()))?;
@@ -903,6 +1135,7 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
 
     /// Generate the Solana entrypoint function
     fn generate_entrypoint(&mut self, _contract: &ContractDef) -> Result<()> {
+        let i8_type = self.context.i8_type();
         let i64_type = self.context.i64_type();
         let ptr_type = self.context.ptr_type(AddressSpace::default());
 
@@ -910,11 +1143,117 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
         let fn_type = i64_type.fn_type(&[ptr_type.into()], false);
         let entrypoint = self.module.add_function("entrypoint", fn_type, None);
 
-        let entry = self.context.append_basic_block(entrypoint, "entry");
-        self.builder.position_at_end(entry);
+        // Add BPF-specific attributes to disable exception handling
+        self.add_bpf_function_attrs(entrypoint);
 
-        // Parse instruction data and dispatch to the appropriate function
-        // For now, just return success
+        let entry_bb = self.context.append_basic_block(entrypoint, "entry");
+        let unknown_bb = self.context.append_basic_block(entrypoint, "unknown");
+        let success_bb = self.context.append_basic_block(entrypoint, "success");
+
+        // Entry block: parse input and get discriminator
+        self.builder.position_at_end(entry_bb);
+        let input_ptr = entrypoint.get_first_param().unwrap().into_pointer_value();
+
+        // Read number of accounts (first 8 bytes)
+        let num_accounts = self.builder.build_load(i64_type, input_ptr, "num_accounts")
+            .map_err(|e| BpfError::LlvmError(e.to_string()))?
+            .into_int_value();
+
+        // Calculate offset to instruction data
+        // We need to skip: 8 bytes (num_accounts) + account data for each account
+        // For simplicity, we assume a fixed layout or no accounts for now
+        // In practice, you'd need to iterate through accounts
+
+        // Simplified: Skip num_accounts (8) and jump to where instruction data should be
+        // For a minimal implementation, assume instruction data starts at offset 8
+        // This works when num_accounts = 0
+        let offset_to_instr_len = self.builder.build_int_add(
+            i64_type.const_int(8, false), // past num_accounts
+            i64_type.const_int(0, false), // no accounts for simplicity
+            "instr_offset"
+        ).map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+        // Get pointer to instruction data length
+        let instr_len_ptr = unsafe {
+            self.builder.build_gep(
+                i8_type,
+                input_ptr,
+                &[offset_to_instr_len],
+                "instr_len_ptr"
+            ).map_err(|e| BpfError::LlvmError(e.to_string()))?
+        };
+
+        // Read instruction data length
+        let _instr_len = self.builder.build_load(i64_type, instr_len_ptr, "instr_len")
+            .map_err(|e| BpfError::LlvmError(e.to_string()))?
+            .into_int_value();
+
+        // Get pointer to instruction data (8 bytes after length)
+        let instr_data_offset = self.builder.build_int_add(
+            offset_to_instr_len,
+            i64_type.const_int(8, false),
+            "instr_data_offset"
+        ).map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+        let instr_data_ptr = unsafe {
+            self.builder.build_gep(
+                i8_type,
+                input_ptr,
+                &[instr_data_offset],
+                "instr_data_ptr"
+            ).map_err(|e| BpfError::LlvmError(e.to_string()))?
+        };
+
+        // Read 8-byte discriminator from instruction data
+        let discriminator = self.builder.build_load(i64_type, instr_data_ptr, "discriminator")
+            .map_err(|e| BpfError::LlvmError(e.to_string()))?
+            .into_int_value();
+
+        // Generate dispatch switch based on compiled functions
+        if self.compiled_functions.is_empty() {
+            // No functions to dispatch, just return success
+            self.builder.build_unconditional_branch(success_bb)
+                .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+        } else {
+            // Build a switch statement for dispatching
+            // Clone the functions to avoid borrow issues
+            let functions: Vec<_> = self.compiled_functions.iter().cloned().collect();
+
+            // Create basic blocks for each function
+            let mut cases = Vec::new();
+            for func_info in &functions {
+                let func_bb = self.context.append_basic_block(entrypoint, &format!("call_{}", func_info.name));
+                let disc_value = u64::from_le_bytes(func_info.discriminator);
+                cases.push((i64_type.const_int(disc_value, false), func_bb));
+            }
+
+            // Build switch
+            self.builder.build_switch(discriminator, unknown_bb, &cases)
+                .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+            // Generate code for each function call
+            for (i, func_info) in functions.iter().enumerate() {
+                let func_bb = cases[i].1;
+                self.builder.position_at_end(func_bb);
+
+                // Call the function (for now, with no arguments)
+                // In a full implementation, we'd deserialize arguments from instruction data
+                let _call_result = self.builder.build_call(func_info.function, &[], &format!("call_{}", func_info.name))
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+                // Branch to success
+                self.builder.build_unconditional_branch(success_bb)
+                    .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+            }
+        }
+
+        // Unknown discriminator block - return error
+        self.builder.position_at_end(unknown_bb);
+        self.builder.build_return(Some(&i64_type.const_int(1, false))) // Return error code 1
+            .map_err(|e| BpfError::LlvmError(e.to_string()))?;
+
+        // Success block - return 0
+        self.builder.position_at_end(success_bb);
         self.builder.build_return(Some(&i64_type.const_int(0, false)))
             .map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
@@ -927,6 +1266,32 @@ impl<'a, 'ctx> Compiler<'a, 'ctx> {
             format!("{}_{}", contract, name)
         } else {
             name.to_string()
+        }
+    }
+
+    /// Get the struct type name from a variable identifier
+    fn get_var_struct_name(&self, name: &str) -> Option<String> {
+        // Check local variables first
+        if let Some(struct_name) = self.variable_struct_names.get(name) {
+            return Some(struct_name.clone());
+        }
+        // Check state variables
+        if let Some(struct_name) = self.state_var_struct_names.get(name) {
+            return Some(struct_name.clone());
+        }
+        None
+    }
+
+    /// Try to get the struct type name from an expression
+    fn get_expr_struct_name(&self, expr: &Expr) -> Option<String> {
+        match expr {
+            Expr::Ident(ident) => self.get_var_struct_name(&ident.name),
+            Expr::FieldAccess(access) => {
+                // For nested field access, we'd need type inference
+                // For now, just try the base
+                self.get_expr_struct_name(&access.expr)
+            }
+            _ => None,
         }
     }
 }

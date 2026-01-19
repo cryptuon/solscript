@@ -4,6 +4,7 @@
 
 mod config;
 mod package;
+mod templates;
 
 use clap::{Parser, Subcommand};
 use miette::{IntoDiagnostic, Result, WrapErr};
@@ -23,7 +24,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Initialize a new SolScript project
+    /// Initialize a new SolScript project (deprecated: use 'new')
     Init {
         /// Project name (creates a directory with this name)
         #[arg(value_name = "NAME")]
@@ -32,6 +33,20 @@ enum Commands {
         /// Use a minimal template (just the contract file)
         #[arg(long)]
         minimal: bool,
+    },
+    /// Create a new SolScript project from a template
+    New {
+        /// Project name (creates a directory with this name)
+        #[arg(value_name = "NAME")]
+        name: Option<String>,
+
+        /// Template to use
+        #[arg(short, long, default_value = "counter")]
+        template: String,
+
+        /// List available templates
+        #[arg(long)]
+        list: bool,
     },
     /// Parse a SolScript file and check for syntax errors
     Check {
@@ -188,6 +203,10 @@ enum Commands {
         /// Keep intermediate files
         #[arg(long)]
         keep_intermediate: bool,
+
+        /// Use direct LLVM compilation instead of cargo-sbf (requires LLVM 18)
+        #[arg(long)]
+        llvm: bool,
     },
     /// Check available build tools
     Doctor,
@@ -198,6 +217,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init { name, minimal } => init_project(&name, minimal),
+        Commands::New { name, template, list } => new_project(name, &template, list),
         Commands::Check { file } => check_file(&file),
         Commands::Parse { file, format } => parse_file(&file, &format),
         Commands::Build { file, output } => build_project(&file, &output),
@@ -219,8 +239,8 @@ fn main() -> Result<()> {
         Commands::Install => install_dependencies(),
         Commands::Update => update_dependencies(),
         Commands::List => list_dependencies(),
-        Commands::BuildBpf { file, output, opt_level, keep_intermediate } => {
-            build_bpf(&file, &output, opt_level, keep_intermediate)
+        Commands::BuildBpf { file, output, opt_level, keep_intermediate, llvm } => {
+            build_bpf(&file, &output, opt_level, keep_intermediate, llvm)
         }
         Commands::Doctor => check_doctor(),
     }
@@ -697,7 +717,65 @@ fn deploy_program(
     Ok(())
 }
 
-fn init_project(name: &str, minimal: bool) -> Result<()> {
+// ============ Project Creation ============
+
+fn new_project(name: Option<String>, template_id: &str, list_only: bool) -> Result<()> {
+    // If --list flag is set, show available templates
+    if list_only {
+        return list_templates();
+    }
+
+    // Name is required if not listing
+    let name = name.ok_or_else(|| {
+        miette::miette!("Project name is required. Usage: solscript new <name> [--template <template>]")
+    })?;
+
+    // Look up the template
+    let template = templates::get_template(template_id).ok_or_else(|| {
+        miette::miette!(
+            "Unknown template '{}'. Run 'solscript new --list' to see available templates.",
+            template_id
+        )
+    })?;
+
+    create_project_from_template(&name, template)
+}
+
+fn list_templates() -> Result<()> {
+    println!("\nAvailable templates:\n");
+
+    for template in templates::TEMPLATES {
+        let difficulty = match template.metadata.difficulty {
+            templates::Difficulty::Beginner => "Beginner",
+            templates::Difficulty::Intermediate => "Intermediate",
+            templates::Difficulty::Advanced => "Advanced",
+        };
+
+        let default_marker = if template.metadata.id == "counter" {
+            " [DEFAULT]"
+        } else {
+            ""
+        };
+
+        println!(
+            "  {} ({}) - {}{}",
+            template.metadata.id,
+            difficulty,
+            template.metadata.description,
+            default_marker
+        );
+        println!("    Features: {}", template.metadata.features.join(", "));
+        println!();
+    }
+
+    println!("Usage: solscript new <project-name> --template <template>");
+    println!("       solscript new <project-name>  (uses 'counter' by default)");
+    println!();
+
+    Ok(())
+}
+
+fn create_project_from_template(name: &str, template: &templates::Template) -> Result<()> {
     let project_dir = PathBuf::from(name);
 
     // Check if directory already exists
@@ -721,201 +799,75 @@ fn init_project(name: &str, minimal: bool) -> Result<()> {
     // Generate contract name from project name
     let contract_name = to_pascal_case(name);
 
-    // Create main contract file
-    let contract_content = generate_contract_template(&contract_name);
-    fs::write(src_dir.join("main.sol"), &contract_content)
+    // Format features list for README
+    let features_list = template
+        .metadata
+        .features
+        .iter()
+        .map(|f| format!("- {}", f))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Replace placeholders in templates
+    let config_content = template
+        .config_template
+        .replace("{{PROJECT_NAME}}", name)
+        .replace("{{CONTRACT_NAME}}", &contract_name)
+        .replace("{{DESCRIPTION}}", template.metadata.description);
+
+    let readme_content = template
+        .readme_template
+        .replace("{{PROJECT_NAME}}", name)
+        .replace("{{CONTRACT_NAME}}", &contract_name)
+        .replace("{{DESCRIPTION}}", template.metadata.description)
+        .replace("{{FEATURES_LIST}}", &features_list);
+
+    // Write files
+    fs::write(src_dir.join("main.sol"), template.main_sol)
         .into_diagnostic()
         .wrap_err("Failed to write contract file")?;
 
-    // Create solscript.toml configuration
-    let config_content = generate_config_template(name, &contract_name);
     fs::write(project_dir.join("solscript.toml"), &config_content)
         .into_diagnostic()
         .wrap_err("Failed to write config file")?;
 
-    if !minimal {
-        // Create .gitignore
-        let gitignore_content = r#"# Build outputs
-/output/
-/target/
+    fs::write(project_dir.join("README.md"), &readme_content)
+        .into_diagnostic()
+        .wrap_err("Failed to write README.md")?;
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+    fs::write(project_dir.join(".gitignore"), template.gitignore)
+        .into_diagnostic()
+        .wrap_err("Failed to write .gitignore")?;
 
-# OS
-.DS_Store
-Thumbs.db
-"#;
-        fs::write(project_dir.join(".gitignore"), gitignore_content)
-            .into_diagnostic()
-            .wrap_err("Failed to write .gitignore")?;
-
-        // Create README.md
-        let readme_content = format!(
-            r#"# {}
-
-A Solana smart contract written in SolScript.
-
-## Getting Started
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/)
-- [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools)
-- [Anchor](https://www.anchor-lang.com/docs/installation)
-
-### Build
-
-```bash
-solscript build src/main.sol -o output
-cd output
-anchor build
-```
-
-### Deploy
-
-```bash
-cd output
-anchor deploy
-```
-
-## Project Structure
-
-```
-{}/
-├── src/
-│   └── main.sol      # Main contract source
-├── solscript.toml    # Project configuration
-└── README.md
-```
-
-## License
-
-MIT
-"#,
-            contract_name, name
-        );
-        fs::write(project_dir.join("README.md"), readme_content)
-            .into_diagnostic()
-            .wrap_err("Failed to write README.md")?;
-    }
-
-    println!("✓ Created new SolScript project '{}'", name);
-    println!();
+    // Print success message
+    println!(
+        "\n✓ Created new SolScript project '{}' using '{}' template\n",
+        name, template.metadata.name
+    );
     println!("Project structure:");
     println!("  {}/", name);
     println!("  ├── src/");
     println!("  │   └── main.sol");
     println!("  ├── solscript.toml");
-    if !minimal {
-        println!("  ├── .gitignore");
-        println!("  └── README.md");
-    }
+    println!("  ├── .gitignore");
+    println!("  └── README.md");
     println!();
     println!("Next steps:");
     println!("  cd {}", name);
+    println!("  solscript check src/main.sol");
     println!("  solscript build src/main.sol");
     println!();
 
     Ok(())
 }
 
-fn generate_contract_template(contract_name: &str) -> String {
-    format!(
-        r#"// {contract_name} - A SolScript smart contract for Solana
+fn init_project(name: &str, minimal: bool) -> Result<()> {
+    // Show deprecation notice
+    eprintln!("Note: 'init' is deprecated. Use 'solscript new' instead.\n");
 
-contract {contract_name} {{
-    // State variables
-    uint256 public counter;
-    address public owner;
-
-    // Events
-    event CounterIncremented(address indexed by, uint256 newValue);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    // Errors
-    error Unauthorized(address caller);
-    error InvalidAmount(uint256 amount);
-
-    // Constructor - called once when the contract is deployed
-    constructor() {{
-        owner = msg.sender;
-        counter = 0;
-    }}
-
-    // Increment the counter
-    function increment() public {{
-        counter += 1;
-        emit CounterIncremented(msg.sender, counter);
-    }}
-
-    // Increment by a specific amount
-    function incrementBy(uint256 amount) public {{
-        require(amount > 0, "Amount must be positive");
-        counter += amount;
-        emit CounterIncremented(msg.sender, counter);
-    }}
-
-    // Get the current counter value
-    function getCounter() public view returns (uint256) {{
-        return counter;
-    }}
-
-    // Transfer ownership (only owner can call)
-    function transferOwnership(address newOwner) public {{
-        require(msg.sender == owner, "Only owner can transfer ownership");
-        require(newOwner != address(0), "New owner cannot be zero address");
-
-        address previousOwner = owner;
-        owner = newOwner;
-        emit OwnershipTransferred(previousOwner, newOwner);
-    }}
-
-    // Reset counter (only owner can call)
-    function reset() public {{
-        require(msg.sender == owner, "Only owner can reset");
-        counter = 0;
-    }}
-}}
-"#,
-        contract_name = contract_name
-    )
-}
-
-fn generate_config_template(project_name: &str, contract_name: &str) -> String {
-    format!(
-        r#"# SolScript Project Configuration
-
-[project]
-name = "{project_name}"
-version = "0.1.0"
-authors = []
-description = "A SolScript smart contract"
-
-[contract]
-# Main contract file
-main = "src/main.sol"
-# Contract name (must match the contract in main file)
-name = "{contract_name}"
-
-[build]
-# Output directory for generated Anchor project
-output = "output"
-
-[solana]
-# Target cluster: localnet, devnet, testnet, mainnet-beta
-cluster = "devnet"
-
-# [dependencies]
-# Add external SolScript packages here
-# example = "0.1.0"
-"#,
-        project_name = project_name,
-        contract_name = contract_name
-    )
+    // Map to new command
+    let template_id = if minimal { "simple" } else { "counter" };
+    new_project(Some(name.to_string()), template_id, false)
 }
 
 fn to_pascal_case(s: &str) -> String {
@@ -1495,8 +1447,12 @@ fn list_dependencies() -> Result<()> {
 // BPF Compilation Commands
 // =============================================================================
 
-fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate: bool) -> Result<()> {
-    println!("Compiling {} to BPF...\n", file.display());
+fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate: bool, use_llvm: bool) -> Result<()> {
+    if use_llvm {
+        println!("Compiling {} to BPF using LLVM...\n", file.display());
+    } else {
+        println!("Compiling {} to BPF...\n", file.display());
+    }
 
     let source = std::fs::read_to_string(file)
         .into_diagnostic()
@@ -1513,7 +1469,7 @@ fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate:
         opt_level,
         debug_info: false,
         output_dir: output.clone(),
-        use_cargo_sbf: true,
+        use_cargo_sbf: !use_llvm, // Use direct LLVM if --llvm flag is passed
         keep_intermediate,
     };
 
@@ -1522,8 +1478,13 @@ fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate:
         .map_err(|e| miette::miette!("Compilation error: {}", e))?;
 
     println!("✓ Type checked successfully");
-    println!("✓ Generated Anchor code");
-    println!("✓ Compiled to BPF");
+    if use_llvm {
+        println!("✓ Generated LLVM IR");
+        println!("✓ Compiled to BPF via LLVM");
+    } else {
+        println!("✓ Generated Anchor code");
+        println!("✓ Compiled to BPF");
+    }
     println!();
     println!("Output: {}", result.program_path.display());
     println!("Build time: {:.2}s", result.build_time_secs);

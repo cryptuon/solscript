@@ -5,11 +5,11 @@ Get up and running with SolScript in minutes.
 ## Create a New Project
 
 ```bash
-solscript init my-project
+solscript new my-project
 cd my-project
 ```
 
-This creates:
+This creates a new project using the default template (counter):
 
 ```
 my-project/
@@ -19,6 +19,30 @@ my-project/
 ├── .gitignore
 └── README.md
 ```
+
+### Using Templates
+
+SolScript includes templates for common patterns:
+
+```bash
+# List available templates
+solscript new --list
+
+# Create with a specific template
+solscript new my-token --template token
+solscript new my-nft --template nft
+```
+
+**Available templates:**
+
+| Template | Difficulty | Description |
+|----------|------------|-------------|
+| `simple` | Beginner | Minimal contract for learning |
+| `counter` | Beginner | Counter with ownership (default) |
+| `token` | Intermediate | ERC20-style fungible token |
+| `voting` | Intermediate | Decentralized voting system |
+| `escrow` | Advanced | Trustless escrow with disputes |
+| `nft` | Advanced | ERC721-style NFT collection |
 
 ## Project Structure
 
@@ -47,25 +71,28 @@ cluster = "devnet"
 
 The generated contract template:
 
-```solidity
+```solscript
 contract MyProject {
-    uint256 public counter;
-    address public owner;
+    @state counter: u64;
+    @state owner: Address;
 
-    event CounterIncremented(address indexed by, uint256 newValue);
+    event CounterIncremented(by: Address, newValue: u64);
 
-    constructor() {
-        owner = msg.sender;
-        counter = 0;
+    fn init() {
+        self.owner = tx.sender;
+        self.counter = 0;
     }
 
-    function increment() public {
-        counter += 1;
-        emit CounterIncremented(msg.sender, counter);
+    @public
+    fn increment() {
+        self.counter += 1;
+        emit CounterIncremented(tx.sender, self.counter);
     }
 
-    function getCounter() public view returns (uint256) {
-        return counter;
+    @public
+    @view
+    fn get_counter(): u64 {
+        return self.counter;
     }
 }
 ```
@@ -103,11 +130,17 @@ output/
 
 ### Compile to BPF
 
+**Via Anchor (default):**
 ```bash
 solscript build-bpf src/main.sol
 ```
 
-This compiles directly to a deployable Solana program.
+**Via Direct LLVM (faster, requires LLVM 18):**
+```bash
+solscript build-bpf --llvm src/main.sol
+```
+
+This compiles to a deployable Solana program (.so file).
 
 ## Development Workflow
 
@@ -129,14 +162,14 @@ solscript fmt src/main.sol
 
 Add test functions to your contract:
 
-```solidity
+```solscript
 contract MyProject {
     // ... contract code ...
 
     #[test]
-    function testIncrement() {
+    fn test_increment() {
         increment();
-        assertEq(counter, 1, "Counter should be 1");
+        assert_eq(self.counter, 1, "Counter should be 1");
     }
 }
 ```
@@ -177,15 +210,18 @@ solscript deploy src/main.sol --cluster devnet
 
 | Command | Description |
 |---------|-------------|
-| `solscript init <name>` | Create new project |
+| `solscript new <name>` | Create new project from template |
+| `solscript new --list` | List available templates |
 | `solscript check <file>` | Type check only |
 | `solscript build <file>` | Generate Anchor code |
-| `solscript build-bpf <file>` | Compile to BPF |
+| `solscript build-bpf <file>` | Compile to BPF (via Anchor) |
+| `solscript build-bpf --llvm <file>` | Compile to BPF (direct LLVM) |
 | `solscript test <file>` | Run tests |
 | `solscript deploy <file>` | Deploy to cluster |
 | `solscript watch <file>` | Watch and rebuild |
 | `solscript fmt <file>` | Format code |
 | `solscript doctor` | Check environment |
+| `solscript lsp` | Start Language Server |
 
 ## Next Steps
 

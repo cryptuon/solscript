@@ -1,0 +1,16 @@
+# SolScript Project Configuration
+
+[project]
+name = "{{PROJECT_NAME}}"
+version = "0.1.0"
+description = "{{DESCRIPTION}}"
+
+[contract]
+main = "src/main.sol"
+name = "{{CONTRACT_NAME}}"
+
+[build]
+output = "output"
+
+[solana]
+cluster = "devnet"

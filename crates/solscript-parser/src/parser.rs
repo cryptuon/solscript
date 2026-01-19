@@ -155,6 +155,12 @@ fn parse_contract(pair: Pair) -> Result<ContractDef, ParseError> {
                     Rule::error_def => {
                         members.push(ContractMember::Error(parse_error_def(member_inner)?));
                     }
+                    Rule::struct_def => {
+                        members.push(ContractMember::Struct(parse_struct(member_inner)?));
+                    }
+                    Rule::enum_def => {
+                        members.push(ContractMember::Enum(parse_enum(member_inner)?));
+                    }
                     _ => {}
                 }
             }

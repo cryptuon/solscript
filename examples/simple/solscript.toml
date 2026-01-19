@@ -1,0 +1,10 @@
+[package]
+name = "simple"
+version = "0.1.0"
+description = "Minimal contract for learning basics"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

@@ -1,0 +1,10 @@
+[package]
+name = "staking"
+version = "0.1.0"
+description = "DeFi staking pool with time-based rewards"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

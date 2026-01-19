@@ -1270,6 +1270,7 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "inkwell",
+ "sha2",
  "solscript-ast",
  "solscript-codegen",
  "solscript-parser",

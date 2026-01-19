@@ -190,6 +190,9 @@ impl TypeChecker {
                 ast::ContractMember::Event(_) | ast::ContractMember::Error(_) => {
                     // Events and errors are already registered at the program level
                 }
+                ast::ContractMember::Struct(_) | ast::ContractMember::Enum(_) => {
+                    // Structs and enums defined inside contracts are handled at the program level
+                }
             }
         }
 
@@ -1478,7 +1481,15 @@ impl TypeChecker {
                         ));
                         return Type::Error;
                     }
-                    // TODO: Type check the argument against elem_ty
+                    // Type check the argument against the element type
+                    if !self.types_compatible(elem_ty, &arg_types[0]) {
+                        self.error(TypeError::type_mismatch(
+                            elem_ty,
+                            &arg_types[0],
+                            self.span(mc.span),
+                            &self.source,
+                        ));
+                    }
                     return Type::Unit;
                 }
                 "pop" => {
@@ -1780,7 +1791,9 @@ impl TypeChecker {
             return Type::Error;
         }
 
-        // Check constructor arguments (TODO: validate against actual constructor)
+        // Check constructor arguments
+        // Note: Full constructor validation would require storing constructor signatures
+        // in the symbol table. For now, we just type-check the argument expressions.
         for arg in &n.args {
             self.check_expr(&arg.value);
         }

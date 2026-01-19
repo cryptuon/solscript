@@ -1,0 +1,42 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## Build
+
+```bash
+# Type check
+solscript check src/main.sol
+
+# Build to Anchor project
+solscript build src/main.sol -o ./output
+
+# Build to BPF directly (requires LLVM 18)
+solscript build-bpf --llvm src/main.sol -o ./deploy
+```
+
+## Deploy
+
+```bash
+# Deploy to devnet
+solscript deploy src/main.sol --cluster devnet
+```
+
+## Project Structure
+
+```
+{{PROJECT_NAME}}/
+├── src/
+│   └── main.sol      # Main contract source
+├── solscript.toml    # Project configuration
+└── README.md
+```
+
+## License
+
+MIT

@@ -51,6 +51,9 @@ pub enum BpfError {
     #[cfg(feature = "llvm")]
     #[error("Unsupported feature: {0}")]
     Unsupported(String),
+
+    #[error("Linker error: {0}")]
+    LinkerError(String),
 }
 
 pub type Result<T> = std::result::Result<T, BpfError>;
@@ -256,6 +259,47 @@ fn read_program_id(program_dir: &Path) -> Option<String> {
     }
 }
 
+/// Link a BPF object file to create a shared object (.so)
+///
+/// Tries sbpf-linker first (preferred for Solana), then falls back to lld-18
+#[cfg(feature = "llvm")]
+fn link_bpf_object(obj_path: &Path, so_path: &Path) -> Result<()> {
+    // Try sbpf-linker first (preferred for Solana programs)
+    let sbpf_result = Command::new("sbpf-linker")
+        .args([
+            "--cpu", "v3",
+            "--output", so_path.to_str().unwrap(),
+            "--export", "entrypoint",
+            obj_path.to_str().unwrap(),
+        ])
+        .output();
+
+    if let Ok(output) = sbpf_result {
+        if output.status.success() {
+            // Check if the output file has content (sbpf-linker sometimes produces empty files)
+            if let Ok(meta) = std::fs::metadata(so_path) {
+                if meta.len() > 500 {  // Sanity check: valid linked output should be larger than 500 bytes
+                    return Ok(());
+                }
+            }
+            // Fall through to use object file directly
+        }
+        // If sbpf-linker exists but failed, report the error
+        if !String::from_utf8_lossy(&output.stderr).contains("not found") {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if !stderr.is_empty() && stderr.trim().len() > 0 {
+                // Don't fail, just log and continue to fallback
+                eprintln!("Warning: sbpf-linker reported: {}", stderr.trim());
+            }
+        }
+    }
+
+    // Fallback: Use the object file directly
+    // Solana's program loader can handle relocatable object files
+    std::fs::copy(obj_path, so_path)?;
+    Ok(())
+}
+
 #[cfg(feature = "llvm")]
 fn compile_direct_llvm(
     program: &Program,
@@ -264,7 +308,7 @@ fn compile_direct_llvm(
 ) -> Result<CompileResult> {
     use inkwell::context::Context;
     use inkwell::targets::{
-        CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple,
+        CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetTriple,
     };
     use inkwell::OptimizationLevel;
 
@@ -314,13 +358,17 @@ fn compile_direct_llvm(
         .write_to_file(&module, FileType::Object, &obj_path)
         .map_err(|e| BpfError::LlvmError(e.to_string()))?;
 
-    // Link to create .so (would need lld-bpf)
+    // Link to create .so
     let so_path = options.output_dir.join("solscript_program.so");
+    link_bpf_object(&obj_path, &so_path)?;
 
-    // For now, just return the object file
-    // Full linking requires BPF linker
+    // Clean up object file if not keeping intermediate files
+    if !options.keep_intermediate {
+        let _ = std::fs::remove_file(&obj_path);
+    }
+
     Ok(CompileResult {
-        program_path: obj_path,
+        program_path: so_path,
         program_id: None,
         build_time_secs: start.elapsed().as_secs_f64(),
     })

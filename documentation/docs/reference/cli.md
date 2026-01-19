@@ -104,15 +104,35 @@ solscript build-bpf <FILE> [OPTIONS]
 - `-o, --output <DIR>` - Output directory (default: `./target`)
 - `--opt-level <LEVEL>` - Optimization level: 0, 1, 2, 3 (default: 2)
 - `--keep-intermediate` - Keep intermediate Anchor files
+- `--llvm` - Use direct LLVM compilation (requires LLVM 18)
 
-**Example:**
+**Compilation Modes:**
+
+1. **Anchor Mode (Default):** Generates Rust/Anchor code, then compiles with `cargo build-sbf`
+   ```bash
+   solscript build-bpf token.sol -o ./deploy
+   ```
+
+2. **Direct LLVM Mode:** Compiles directly to BPF via LLVM (faster, requires LLVM 18)
+   ```bash
+   solscript build-bpf --llvm token.sol -o ./deploy
+   ```
+
+**Examples:**
 ```bash
+# Standard compilation via Anchor
 solscript build-bpf token.sol -o ./deploy --opt-level 3
+
+# Direct LLVM compilation (faster)
+solscript build-bpf --llvm counter.sol -o ./deploy
+
+# Keep intermediate files for debugging
+solscript build-bpf token.sol --keep-intermediate
 ```
 
 **Requirements:**
-- Solana CLI tools installed
-- `cargo-build-sbf` available
+- **Anchor Mode:** Solana CLI tools, `cargo-build-sbf`
+- **LLVM Mode:** LLVM 18 with BPF target, `LLVM_SYS_180_PREFIX` set
 
 ---
 
@@ -162,34 +182,69 @@ solscript test counter.sol
 
 ---
 
-### `solscript init`
+### `solscript new`
 
-Initialize a new SolScript project.
+Create a new SolScript project from a template.
 
 ```bash
-solscript init <NAME> [OPTIONS]
+solscript new <NAME> [OPTIONS]
 ```
 
 **Arguments:**
-- `<NAME>` - Project name
+- `<NAME>` - Project name (optional if using `--list`)
 
 **Options:**
-- `--template <TEMPLATE>` - Project template: counter, token, nft (default: counter)
+- `-t, --template <TEMPLATE>` - Template to use (default: counter)
+- `--list` - List available templates
 
-**Example:**
+**Available Templates:**
+
+| Template | Difficulty | Description |
+|----------|------------|-------------|
+| `simple` | Beginner | Minimal contract for learning |
+| `counter` | Beginner | Counter with ownership (default) |
+| `token` | Intermediate | ERC20-style fungible token |
+| `voting` | Intermediate | Decentralized voting system |
+| `escrow` | Advanced | Trustless escrow with disputes |
+| `nft` | Advanced | ERC721-style NFT collection |
+
+**Examples:**
 ```bash
-solscript init my-project --template token
+# List all templates
+solscript new --list
+
+# Create with default template (counter)
+solscript new my-project
+
+# Create with specific template
+solscript new my-token --template token
+solscript new my-nft -t nft
 ```
 
 **Generated Structure:**
 ```
 my-project/
-├── solscript.toml
 ├── src/
-│   └── lib.sol
-└── tests/
-    └── test.ts
+│   └── main.sol        # Contract code
+├── solscript.toml      # Project configuration
+├── .gitignore
+└── README.md
 ```
+
+---
+
+### `solscript init` (Deprecated)
+
+!!! warning "Deprecated"
+    `solscript init` is deprecated. Use `solscript new` instead.
+
+Initialize a new SolScript project (legacy command).
+
+```bash
+solscript init <NAME>
+```
+
+This command is an alias for `solscript new <NAME> --template counter`.
 
 ---
 

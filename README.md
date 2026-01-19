@@ -1,191 +1,276 @@
 # SolScript: High-Level Language for Solana Development
 
-SolScript is a high-level language designed to simplify Solana development while providing access to the full power of the Solana blockchain when needed.
+SolScript is a high-level language designed to simplify Solana smart contract development. Write contracts in a familiar, Solidity-like syntax and compile them to Solana BPF programs.
 
-## Key Features
+## Features
 
-1. **Intuitive Contract Structure**
-   
-   Write Solana programs using a familiar contract-style syntax:
+- **Intuitive Contract Syntax**: Familiar Solidity-like syntax with Rust-inspired features
+- **Multiple Compilation Modes**: Anchor/Rust codegen or direct LLVM-to-BPF compilation
+- **Type Safety**: Full type checking with inference and generics
+- **Built-in Security**: Automatic overflow checks, signer verification
+- **Language Server**: IDE support with go-to-definition, autocomplete, and inline errors
+- **Testing Framework**: Built-in test support with assertions
 
-   ```solscript
-   contract TokenContract {
-     @state totalSupply: u64;
+## Quick Start
 
-     @public
-     fn transfer(to: Address, amount: u64) {
-       // Transfer logic here
-     }
-   }
-   ```
+### Installation
 
-2. **Automatic Account Management**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/solscript.git
+cd solscript
 
-   Let SolScript handle account creation and management for you:
+# Build the compiler
+cargo build --release
 
-   ```solscript
-   @account
-   struct TokenAccount {
-     balance: u64;
-     owner: Address;
-   }
+# Or install globally
+cargo install --path crates/solscript-cli
+```
 
-   contract TokenContract {
-     @public
-     fn createAccount(owner: Address) {
-       // Automatically creates and initializes a TokenAccount
-       return TokenAccount.create(owner);
-     }
-   }
-   ```
+### Write Your First Contract
 
-3. **Simplified PDAs**
-
-   Work with Program Derived Addresses (PDAs) effortlessly:
-
-   ```solscript
-   contract PDAPoweredContract {
-     @pda(["user", "settings"])
-     userSettings: UserSettings;
-
-     @public
-     fn updateSettings(user: Address, newSettings: UserSettings) {
-       // Automatically handles PDA derivation and bump seeds
-       self.userSettings.set(user, newSettings);
-     }
-   }
-   ```
-
-4. **Easy Cross-Program Invocation**
-
-   Interact with other Solana programs seamlessly:
-
-   ```solscript
-   import { Token } from "@solana/token";
-
-   contract TokenInteractor {
-     @public
-     fn transferTokens(from: Address, to: Address, amount: u64) {
-       // Automatically handles CPI to the Token program
-       Token.transfer(from, to, amount);
-     }
-   }
-   ```
-
-5. **Built-in Security Features**
-
-   Benefit from automatic security checks:
-
-   ```solscript
-   contract SecureContract {
-     @state balance: u64;
-
-     @public
-     fn withdraw(amount: u64) {
-       // Automatic checks for overflow, underflow, and reentrancy
-       self.balance -= amount;
-       transfer(tx.sender, amount);
-     }
-   }
-   ```
-
-6. **Simplified Testing**
-
-   Test your contracts with an intuitive testing framework:
-
-   ```solscript
-   import { Test, assert } from "@solana/testing";
-
-   #[test]
-   fn test_token_transfer() {
-     let token = TokenContract.new(1000);
-     token.transfer(Address("receiver"), 100)?;
-
-     assert.eq(token.balanceOf(Address("receiver")), 100);
-   }
-   ```
-
-## Core Solana Concepts
-
-While SolScript simplifies many aspects of Solana development, understanding these core concepts remains important:
-
-1. **Accounts**: Solana's fundamental storage unit. SolScript abstracts much of account handling, but developers should understand account ownership and rent economics.
-
-2. **Instructions**: The basic unit of execution in Solana. SolScript's functions translate to instructions, but understanding instruction anatomy can help with advanced use cases.
-
-3. **Transactions**: Groups of instructions. SolScript often handles transaction building, but developers should be aware of transaction limits and atomicity.
-
-4. **Programs**: Smart contracts in Solana. SolScript contracts compile to Solana programs.
-
-5. **Program Derived Addresses (PDAs)**: Accounts owned by programs. SolScript simplifies PDA usage, but understanding their purpose is crucial for advanced patterns.
-
-6. **Rent**: The cost of storing data on Solana. SolScript handles many rent calculations, but developers should be aware of its impact on program design.
-
-7. **Signer and Writable Permissions**: Access control for accounts. SolScript often infers these, but explicit control is available when needed.
-
-## Advanced Capabilities
-
-For developers who need fine-grained control, SolScript provides access to low-level Solana features:
+Create `counter.sol`:
 
 ```solscript
-import { LowLevel } from "@solana/low-level";
+contract Counter {
+    @state count: u64;
 
-contract AdvancedContract {
-  @public
-  fn complexOperation() {
-    // Use high-level abstractions
-    self.simpleTransfer(receiver, amount);
+    fn init() {
+        self.count = 0;
+    }
 
-    // Drop down to low-level operations when needed
-    LowLevel.createAccount({
-      fromPubkey: payer.address,
-      newAccountPubkey: newAccount.address,
-      lamports: rentExemptionAmount,
-      space: 1024,
-      programId: self.programId
-    });
-  }
+    @public
+    fn increment() {
+        self.count += 1;
+    }
+
+    @public
+    fn decrement() {
+        self.count -= 1;
+    }
+
+    @public
+    @view
+    fn get_count(): u64 {
+        return self.count;
+    }
 }
 ```
 
-## Best Suited For
+### Compile
 
-- Rapid prototyping and development of Solana programs
-- Developers new to blockchain or Solana
-- Complex projects requiring both high-level abstractions and low-level control
-- Teams looking for a language that scales with their expertise
+```bash
+# Type check only (fast feedback)
+solscript check counter.sol
 
-## Getting Started
+# Generate Rust/Anchor code
+solscript build counter.sol -o target/anchor
 
-1. Install SolScript:
-   ```
-   cargo install solscript
-   ```
+# Compile to BPF (via Anchor)
+solscript build-bpf counter.sol -o target/deploy
 
-2. Create a new project:
-   ```
-   solscript init my-project
-   cd my-project
-   ```
+# Compile to BPF directly via LLVM (faster, requires LLVM 18)
+solscript build-bpf --llvm counter.sol -o target/deploy
+```
 
-3. Write your contract in `src/main.ss`:
-   ```solscript
-   contract HelloWorld {
-     @public
-     fn greet(name: string): string {
-       return `Hello, ${name}!`;
-     }
-   }
-   ```
+## Compilation Modes
 
-4. Compile and deploy:
-   ```
-   solscript build
-   solscript deploy
-   ```
+### 1. Anchor Mode (Default)
 
-## Learn More
+Generates Rust/Anchor code, then compiles using `cargo build-sbf`:
 
-- [SolScript Documentation](https://docs.solscript.xyz)
+```bash
+solscript build-bpf counter.sol
+```
+
+**Requirements:** Solana CLI, Anchor framework
+
+### 2. Direct LLVM Mode
+
+Compiles directly to BPF bytecode using LLVM:
+
+```bash
+solscript build-bpf --llvm counter.sol
+```
+
+**Requirements:** LLVM 18 with BPF target
+
+**Setup LLVM 18:**
+```bash
+# Ubuntu/Debian
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 18
+sudo apt install llvm-18-dev libpolly-18-dev
+export LLVM_SYS_180_PREFIX=/usr/lib/llvm-18
+
+# macOS
+brew install llvm@18
+export LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)
+
+# Build with LLVM feature
+cargo build -p solscript-bpf --features llvm
+```
+
+## Language Features
+
+### State Variables
+
+```solscript
+contract MyContract {
+    @state owner: Address;
+    @state balances: Map<Address, u64>;
+    @state data: Vec<u8>;
+}
+```
+
+### Functions
+
+```solscript
+contract MyContract {
+    // Initialization (called once on deploy)
+    fn init(initial_owner: Address) {
+        self.owner = initial_owner;
+    }
+
+    // Public function (callable externally)
+    @public
+    fn transfer(to: Address, amount: u64) {
+        // ...
+    }
+
+    // View function (read-only, cannot modify state)
+    @public
+    @view
+    fn get_balance(account: Address): u64 {
+        return self.balances.get(account).unwrap_or(0);
+    }
+}
+```
+
+### Events and Errors
+
+```solscript
+event Transfer(from: Address, to: Address, amount: u64);
+error InsufficientBalance(available: u64, required: u64);
+
+contract Token {
+    @public
+    fn transfer(to: Address, amount: u64): Result<(), Error> {
+        let balance = self.balances.get(tx.sender).unwrap_or(0);
+        if balance < amount {
+            return Err(InsufficientBalance(balance, amount));
+        }
+        // ... transfer logic
+        emit Transfer(tx.sender, to, amount);
+        return Ok(());
+    }
+}
+```
+
+### Structs and Enums
+
+```solscript
+#[derive(Clone, Serialize, Deserialize)]
+struct TokenMetadata {
+    name: string;
+    symbol: string;
+    decimals: u8;
+}
+
+enum OrderStatus {
+    Pending,
+    Filled,
+    Cancelled,
+}
+```
+
+### Cross-Program Invocation (CPI)
+
+```solscript
+import { Token } from "@solana/token";
+
+contract TokenInteractor {
+    @public
+    fn transfer_tokens(from: Address, to: Address, amount: u64) {
+        Token.transfer(from, to, amount);
+    }
+}
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `solscript init <name>` | Create a new project |
+| `solscript build <file>` | Generate Rust/Anchor code |
+| `solscript build-bpf <file>` | Compile to BPF bytecode |
+| `solscript build-bpf --llvm <file>` | Compile directly via LLVM |
+| `solscript check <file>` | Type check without compiling |
+| `solscript test` | Run tests |
+| `solscript fmt <file>` | Format source code |
+| `solscript lsp` | Start Language Server |
+
+## Project Structure
+
+```
+solscript/
+├── crates/
+│   ├── solscript-ast/       # AST definitions
+│   ├── solscript-parser/    # Parser (pest grammar)
+│   ├── solscript-typeck/    # Type checker
+│   ├── solscript-codegen/   # Rust/Anchor code generation
+│   ├── solscript-bpf/       # Direct LLVM BPF compilation
+│   ├── solscript-lsp/       # Language Server Protocol
+│   └── solscript-cli/       # CLI tool
+├── examples/                # Example contracts
+├── editors/
+│   └── vscode/              # VS Code extension
+└── documentation/           # mdBook documentation
+```
+
+## Examples
+
+See the `examples/` directory for sample contracts:
+
+- `examples/counter/` - Simple counter contract
+- `examples/token/` - Token contract with transfer and mint
+- `examples/simple/` - Basic examples
+
+## IDE Support
+
+### VS Code
+
+Install the SolScript extension from `editors/vscode/`:
+
+```bash
+cd editors/vscode
+npm install
+npm run package
+code --install-extension solscript-*.vsix
+```
+
+Features:
+- Syntax highlighting
+- Go to definition
+- Hover information
+- Autocomplete
+- Inline error diagnostics
+
+## Documentation
+
+- [Language Specification](docs/specs.md)
+- [Implementation Roadmap](docs/roadmap.md)
+- [Full Documentation](documentation/docs/)
+
+## Contributing
+
+Contributions are welcome! Please see the roadmap for planned features.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
 
 SolScript: Simplifying Solana development without sacrificing power!

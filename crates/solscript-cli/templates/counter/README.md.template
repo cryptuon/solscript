@@ -1,0 +1,50 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## Contract Interface
+
+### State Variables
+- `count` - The current counter value
+- `owner` - The contract owner address
+
+### Functions
+- `increment()` - Increase counter by 1
+- `decrement()` - Decrease counter by 1 (reverts on underflow)
+- `incrementBy(amount)` - Increase counter by specific amount
+- `reset()` - Reset counter to 0 (owner only)
+- `getCount()` - Read current counter value
+
+### Events
+- `Incremented(by, newValue)` - Emitted on increment
+- `Decremented(by, newValue)` - Emitted on decrement
+- `Reset(by)` - Emitted on reset
+
+## Build
+
+```bash
+# Type check
+solscript check src/main.sol
+
+# Build to Anchor project
+solscript build src/main.sol -o ./output
+
+# Build to BPF directly (requires LLVM 18)
+solscript build-bpf --llvm src/main.sol -o ./deploy
+```
+
+## Deploy
+
+```bash
+# Deploy to devnet
+solscript deploy src/main.sol --cluster devnet
+```
+
+## License
+
+MIT

@@ -5,11 +5,22 @@ use inkwell::types::{BasicType, BasicTypeEnum, StructType};
 use inkwell::AddressSpace;
 use std::collections::HashMap;
 
+/// Information about a struct field
+#[derive(Debug, Clone)]
+pub struct FieldInfo<'ctx> {
+    /// Index of the field in the struct
+    pub index: u32,
+    /// LLVM type of the field
+    pub ty: BasicTypeEnum<'ctx>,
+}
+
 /// Type mapper for converting SolScript types to LLVM types
 pub struct TypeMapper<'ctx> {
     context: &'ctx Context,
     /// Cache of struct types by name
     struct_types: HashMap<String, StructType<'ctx>>,
+    /// Struct field information: struct_name -> (field_name -> FieldInfo)
+    struct_fields: HashMap<String, HashMap<String, FieldInfo<'ctx>>>,
 }
 
 impl<'ctx> TypeMapper<'ctx> {
@@ -17,6 +28,7 @@ impl<'ctx> TypeMapper<'ctx> {
         Self {
             context,
             struct_types: HashMap::new(),
+            struct_fields: HashMap::new(),
         }
     }
 
@@ -27,7 +39,8 @@ impl<'ctx> TypeMapper<'ctx> {
                 self.get_primitive_type(&path.name())
             }
             solscript_ast::TypeExpr::Array(arr) => {
-                let element_type = self.get_type(&arr.element);
+                // arr.element is a TypePath, get the primitive type directly
+                let element_type = self.get_primitive_type(&arr.element.name());
                 if let Some(Some(size)) = arr.sizes.first() {
                     // Fixed-size array
                     element_type.array_type(*size as u32).into()
@@ -137,8 +150,31 @@ impl<'ctx> TypeMapper<'ctx> {
         ).into()
     }
 
-    /// Register a custom struct type
-    pub fn register_struct(&mut self, name: &str, fields: &[BasicTypeEnum<'ctx>]) -> StructType<'ctx> {
+    /// Register a custom struct type with field names
+    pub fn register_struct(
+        &mut self,
+        name: &str,
+        field_names: &[String],
+        field_types: &[BasicTypeEnum<'ctx>],
+    ) -> StructType<'ctx> {
+        let struct_type = self.context.struct_type(field_types, false);
+        self.struct_types.insert(name.to_string(), struct_type);
+
+        // Track field information
+        let mut fields_map = HashMap::new();
+        for (i, (field_name, field_ty)) in field_names.iter().zip(field_types.iter()).enumerate() {
+            fields_map.insert(field_name.clone(), FieldInfo {
+                index: i as u32,
+                ty: *field_ty,
+            });
+        }
+        self.struct_fields.insert(name.to_string(), fields_map);
+
+        struct_type
+    }
+
+    /// Register a struct type without field names (backward compatibility)
+    pub fn register_struct_types(&mut self, name: &str, fields: &[BasicTypeEnum<'ctx>]) -> StructType<'ctx> {
         let struct_type = self.context.struct_type(fields, false);
         self.struct_types.insert(name.to_string(), struct_type);
         struct_type
@@ -147,6 +183,17 @@ impl<'ctx> TypeMapper<'ctx> {
     /// Get a previously registered struct type
     pub fn get_struct(&self, name: &str) -> Option<StructType<'ctx>> {
         self.struct_types.get(name).copied()
+    }
+
+    /// Get field information for a struct field
+    pub fn get_field_info(&self, struct_name: &str, field_name: &str) -> Option<&FieldInfo<'ctx>> {
+        self.struct_fields.get(struct_name)?.get(field_name)
+    }
+
+    /// Get the index and type of a field in a struct
+    pub fn get_field_index(&self, struct_name: &str, field_name: &str) -> Option<(u32, BasicTypeEnum<'ctx>)> {
+        let info = self.get_field_info(struct_name, field_name)?;
+        Some((info.index, info.ty))
     }
 
     /// Get the size of a type in bytes

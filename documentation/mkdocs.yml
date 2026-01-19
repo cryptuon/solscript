@@ -66,9 +66,11 @@ nav:
   - Getting Started:
     - Installation: guide/installation.md
     - Quick Start: guide/quickstart.md
+    - Project Templates: guide/templates.md
     - Your First Contract: guide/first-contract.md
   - Language Guide:
     - Overview: guide/overview.md
+    - Solana Concepts: guide/solana-concepts.md
     - Contracts: guide/contracts.md
     - Types: guide/types.md
     - Functions: guide/functions.md
@@ -84,6 +86,7 @@ nav:
     - Built-in Objects: reference/builtins.md
     - Attributes: reference/attributes.md
     - Grammar: reference/grammar.md
+    - Roadmap: reference/roadmap.md
   - Tutorials:
     - Token Contract: tutorials/token.md
     - NFT Marketplace: tutorials/nft-marketplace.md

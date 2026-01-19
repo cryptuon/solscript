@@ -703,27 +703,77 @@ fn {}({}) -> {} {{
                     .iter()
                     .map(|a| self.generate_expression(a))
                     .collect::<Result<Vec<_>, _>>()?;
-                // Generate CPI code using Anchor's CPI pattern
-                // For now, generate a generic invoke pattern - more specific handling can be added
+
+                // Generate Anchor-style instruction discriminator
+                // Format: sha256("global:{method_name}")[0..8]
+                let method_snake = to_snake_case(method);
+
+                // Build instruction data serialization
+                let mut data_parts = Vec::new();
+                data_parts.push(format!(
+                    "let discriminator = anchor_lang::solana_program::hash::hash(b\"global:{}\").to_bytes();",
+                    method_snake
+                ));
+                data_parts.push("let mut data = discriminator[..8].to_vec();".to_string());
+
+                // Serialize each argument using Borsh
+                for arg in &args_str {
+                    data_parts.push(format!(
+                        "AnchorSerialize::serialize(&({}), &mut data).unwrap();",
+                        arg
+                    ));
+                }
+
+                // Generate account metas from address-type arguments
+                // This is a heuristic - addresses become account metas
+                let mut account_metas = Vec::new();
+                let mut account_infos = Vec::new();
+                for arg in args_str.iter() {
+                    // Add each argument that looks like a pubkey as an account
+                    account_metas.push(format!(
+                        "AccountMeta::new({}, false)",
+                        arg
+                    ));
+                    account_infos.push(format!(
+                        "/* account_info for {} */",
+                        arg
+                    ));
+                }
+
+                let accounts_vec = if account_metas.is_empty() {
+                    "vec![]".to_string()
+                } else {
+                    format!("vec![{}]", account_metas.join(", "))
+                };
+
                 Ok(format!(
                     r#"{{
-            // CPI to {interface_name}.{method} via program {prog}
+            use anchor_lang::prelude::*;
+            // CPI to {interface_name}.{method}
             let cpi_program = {prog};
-            // TODO: Build accounts and instruction data for {interface_name}::{method}
-            // Arguments: [{args}]
+
+            // Build instruction data with Anchor discriminator
+            {data_code}
+
+            // Build the instruction
+            let ix = anchor_lang::solana_program::instruction::Instruction {{
+                program_id: cpi_program,
+                accounts: {accounts},
+                data,
+            }};
+
+            // Execute CPI
+            // Note: You may need to add the appropriate account_infos based on your context
             anchor_lang::solana_program::program::invoke(
-                &anchor_lang::solana_program::instruction::Instruction {{
-                    program_id: cpi_program,
-                    accounts: vec![], // TODO: Add account metas
-                    data: vec![], // TODO: Serialize instruction data
-                }},
-                &[], // TODO: Add account infos
+                &ix,
+                &[cpi_program.to_account_info()],
             )?
         }}"#,
                     interface_name = interface_name,
                     method = method,
                     prog = prog,
-                    args = args_str.join(", ")
+                    data_code = data_parts.join("\n            "),
+                    accounts = accounts_vec,
                 ))
             }
             Expression::InterfaceCast { interface_name: _, program_id } => {

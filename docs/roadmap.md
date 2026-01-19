@@ -10,10 +10,23 @@ This roadmap outlines the implementation plan for SolScript, a high-level langua
 |----------|--------|
 | Implementation Language | **Rust** |
 | Parser | **pest** (PEG grammar) |
-| Compilation Strategy | **Hybrid** (Rust codegen → direct BPF later) |
+| Compilation Strategy | **Hybrid** (Rust/Anchor codegen + Direct LLVM BPF) |
 | First Target | **Full Example** contract |
 | Package Registry | **GitHub** (self-hosted) |
 | Governance | **Open** |
+
+### Current Status (January 2026)
+
+| Phase | Status |
+|-------|--------|
+| Phase 0: Specification | **COMPLETE** |
+| Phase 1: Core Compiler | **COMPLETE** |
+| Phase 2: Code Generation | **COMPLETE** |
+| Phase 3: CLI & Developer Experience | **COMPLETE** |
+| Phase 4.1: Direct BPF Compilation | **COMPLETE** |
+| Phase 4.2: Language Server (LSP) | **COMPLETE** (basic) |
+| Phase 4.3: Package Manager | Planned |
+| Phase 5: Ecosystem | **IN PROGRESS** |
 
 ---
 
@@ -27,7 +40,11 @@ The language specification is documented in `specs.md` with 12 sections covering
 
 ## Phase 1: Core Compiler
 
+**Status: COMPLETE**
+
 ### Milestone 1.1: Project Setup & Lexer
+
+**Status: COMPLETE**
 
 **Goal:** Establish project structure and tokenize SolScript source code.
 
@@ -42,37 +59,41 @@ solscript/
 │   ├── solscript-ast/          # AST types
 │   ├── solscript-typeck/       # Type checking
 │   ├── solscript-codegen/      # Rust code generation
+│   ├── solscript-bpf/          # Direct LLVM BPF compilation
+│   ├── solscript-lsp/          # Language Server Protocol
 │   └── solscript-cli/          # CLI tool
 ├── grammar/
 │   └── solscript.pest          # PEG grammar
 └── examples/
-    └── *.ss                    # Example contracts
+    └── *.sol                   # Example contracts
 ```
 
 #### Tasks
 
-- [ ] Initialize Cargo workspace with crate structure
-- [ ] Define pest grammar for tokens:
-  - [ ] Keywords (`contract`, `fn`, `let`, `struct`, `trait`, `impl`, etc.)
-  - [ ] Operators (`+`, `-`, `*`, `/`, `==`, `!=`, `&&`, `||`, etc.)
-  - [ ] Delimiters (`{`, `}`, `(`, `)`, `[`, `]`, `;`, `:`, etc.)
-  - [ ] Literals (integers, strings, booleans, addresses)
-  - [ ] Identifiers
-  - [ ] Comments (single-line `//`, multi-line `/* */`, doc `///`)
-  - [ ] Decorators (`@state`, `@public`, `@view`, etc.)
-  - [ ] Attributes (`#[derive]`, `#[test]`, etc.)
-- [ ] Implement token span tracking for error reporting
-- [ ] Write lexer tests for all token types
+- [x] Initialize Cargo workspace with crate structure
+- [x] Define pest grammar for tokens:
+  - [x] Keywords (`contract`, `fn`, `let`, `struct`, `trait`, `impl`, etc.)
+  - [x] Operators (`+`, `-`, `*`, `/`, `==`, `!=`, `&&`, `||`, etc.)
+  - [x] Delimiters (`{`, `}`, `(`, `)`, `[`, `]`, `;`, `:`, etc.)
+  - [x] Literals (integers, strings, booleans, addresses)
+  - [x] Identifiers
+  - [x] Comments (single-line `//`, multi-line `/* */`, doc `///`)
+  - [x] Decorators (`@state`, `@public`, `@view`, etc.)
+  - [x] Attributes (`#[derive]`, `#[test]`, etc.)
+- [x] Implement token span tracking for error reporting
+- [x] Write lexer tests for all token types
 
 #### Success Criteria
 
-- Can tokenize all examples in `specs.md`
-- Tokens include source location (line, column, span)
-- Comprehensive test coverage
+- [x] Can tokenize all examples in `specs.md`
+- [x] Tokens include source location (line, column, span)
+- [x] Comprehensive test coverage
 
 ---
 
 ### Milestone 1.2: Parser & AST
+
+**Status: COMPLETE**
 
 **Goal:** Parse tokens into an Abstract Syntax Tree.
 
@@ -125,55 +146,59 @@ pub enum Expr {
 
 #### Tasks
 
-- [ ] Define complete pest grammar for SolScript
-  - [ ] Top-level items (contract, struct, trait, impl, etc.)
-  - [ ] Statements
-  - [ ] Expressions with precedence
-  - [ ] Type annotations
-  - [ ] Generics and constraints
-  - [ ] Patterns for match/let
-- [ ] Define AST types in `solscript-ast` crate
-- [ ] Implement parser that builds AST from pest pairs
-- [ ] Implement pretty-printer for AST (debugging)
-- [ ] Error recovery for better error messages
-- [ ] Write parser tests for all language constructs
+- [x] Define complete pest grammar for SolScript
+  - [x] Top-level items (contract, struct, trait, impl, etc.)
+  - [x] Statements
+  - [x] Expressions with precedence
+  - [x] Type annotations
+  - [x] Generics and constraints
+  - [x] Patterns for match/let
+- [x] Define AST types in `solscript-ast` crate
+- [x] Implement parser that builds AST from pest pairs
+- [x] Implement pretty-printer for AST (debugging)
+- [x] Error recovery for better error messages
+- [x] Write parser tests for all language constructs
 
 #### Success Criteria
 
-- Parses all examples from `specs.md` into valid AST
-- Error messages include source location and context
-- AST can be pretty-printed back to valid SolScript
+- [x] Parses all examples from `specs.md` into valid AST
+- [x] Error messages include source location and context
+- [x] AST can be pretty-printed back to valid SolScript
 
 ---
 
 ### Milestone 1.3: Symbol Table & Name Resolution
 
+**Status: COMPLETE**
+
 **Goal:** Resolve all names and build symbol tables.
 
 #### Tasks
 
-- [ ] Define symbol table structure
-  - [ ] Scopes (global, contract, function, block)
-  - [ ] Symbol types (type, function, variable, field)
-  - [ ] Visibility tracking
-- [ ] Implement name resolution pass
-  - [ ] Resolve type references
-  - [ ] Resolve function calls
-  - [ ] Resolve variable references
-  - [ ] Handle imports
-- [ ] Detect undefined/duplicate symbol errors
-- [ ] Resolve trait implementations to types
-- [ ] Handle generic type parameters
+- [x] Define symbol table structure
+  - [x] Scopes (global, contract, function, block)
+  - [x] Symbol types (type, function, variable, field)
+  - [x] Visibility tracking
+- [x] Implement name resolution pass
+  - [x] Resolve type references
+  - [x] Resolve function calls
+  - [x] Resolve variable references
+  - [x] Handle imports
+- [x] Detect undefined/duplicate symbol errors
+- [x] Resolve trait implementations to types
+- [x] Handle generic type parameters
 
 #### Success Criteria
 
-- All names resolved to their definitions
-- Clear errors for undefined/ambiguous names
-- Import resolution working
+- [x] All names resolved to their definitions
+- [x] Clear errors for undefined/ambiguous names
+- [x] Import resolution working
 
 ---
 
 ### Milestone 1.4: Type System & Type Checking
+
+**Status: COMPLETE**
 
 **Goal:** Implement full type checking.
 
@@ -214,66 +239,72 @@ pub enum Type {
 
 #### Tasks
 
-- [ ] Implement type representation
-- [ ] Implement type inference engine
-  - [ ] Hindley-Milner style inference
-  - [ ] Constraint generation
-  - [ ] Constraint solving
-- [ ] Type check all expressions
-- [ ] Type check all statements
-- [ ] Validate function signatures
-- [ ] Check trait bounds
-- [ ] Validate generic instantiations
-- [ ] Check `Result` and `?` operator usage
-- [ ] Implement type coercion rules
-- [ ] Validate decorator usage (`@state`, `@public`, etc.)
+- [x] Implement type representation
+- [x] Implement type inference engine
+  - [x] Hindley-Milner style inference
+  - [x] Constraint generation
+  - [x] Constraint solving
+- [x] Type check all expressions
+- [x] Type check all statements
+- [x] Validate function signatures
+- [x] Check trait bounds
+- [x] Validate generic instantiations
+- [x] Check `Result` and `?` operator usage
+- [x] Implement type coercion rules
+- [x] Validate decorator usage (`@state`, `@public`, etc.)
 
 #### Success Criteria
 
-- Catches all type errors
-- Generic functions/types work correctly
-- Trait bounds enforced
-- Good error messages for type mismatches
+- [x] Catches all type errors
+- [x] Generic functions/types work correctly
+- [x] Trait bounds enforced
+- [x] Good error messages for type mismatches
 
 ---
 
 ### Milestone 1.5: Semantic Analysis
 
+**Status: COMPLETE**
+
 **Goal:** Validate program semantics beyond type checking.
 
 #### Tasks
 
-- [ ] Validate contract structure
-  - [ ] Single `init` function per contract
-  - [ ] State variables have correct decorators
-  - [ ] Public functions are valid entry points
-- [ ] Control flow analysis
-  - [ ] All paths return a value
-  - [ ] No unreachable code warnings
-  - [ ] Break/continue in valid contexts
-- [ ] Mutability checking
-  - [ ] `@view` functions don't mutate state
-  - [ ] Immutable variable reassignment errors
-- [ ] Ownership/borrowing (simplified)
-  - [ ] No use after move (for non-Copy types)
-- [ ] Security checks
-  - [ ] Overflow protection annotations
-  - [ ] Signer verification requirements
-- [ ] Async validation
-  - [ ] `await` only in `async` functions
-  - [ ] Proper CPI context
+- [x] Validate contract structure
+  - [x] Single `init` function per contract
+  - [x] State variables have correct decorators
+  - [x] Public functions are valid entry points
+- [x] Control flow analysis
+  - [x] All paths return a value
+  - [x] No unreachable code warnings
+  - [x] Break/continue in valid contexts
+- [x] Mutability checking
+  - [x] `@view` functions don't mutate state
+  - [x] Immutable variable reassignment errors
+- [x] Ownership/borrowing (simplified)
+  - [x] No use after move (for non-Copy types)
+- [x] Security checks
+  - [x] Overflow protection annotations
+  - [x] Signer verification requirements
+- [x] Async validation
+  - [x] `await` only in `async` functions
+  - [x] Proper CPI context
 
 #### Success Criteria
 
-- Catches semantic errors before codegen
-- Security issues flagged
-- Contract structure validated
+- [x] Catches semantic errors before codegen
+- [x] Security issues flagged
+- [x] Contract structure validated
 
 ---
 
 ## Phase 2: Code Generation
 
+**Status: COMPLETE**
+
 ### Milestone 2.1: Rust Code Generation (Basic)
+
+**Status: COMPLETE**
 
 **Goal:** Generate valid Rust/Anchor code from SolScript.
 
@@ -315,47 +346,51 @@ pub struct Counter {
 
 #### Tasks
 
-- [ ] Generate Rust module structure
-- [ ] Generate struct definitions
-- [ ] Generate enum definitions
-- [ ] Generate function bodies
-- [ ] Generate Anchor account structs
-- [ ] Generate Anchor `#[program]` module
-- [ ] Map SolScript types to Rust types
-- [ ] Generate error types
-- [ ] Generate event emission
-- [ ] Handle `self` → account access translation
+- [x] Generate Rust module structure
+- [x] Generate struct definitions
+- [x] Generate enum definitions
+- [x] Generate function bodies
+- [x] Generate Anchor account structs
+- [x] Generate Anchor `#[program]` module
+- [x] Map SolScript types to Rust types
+- [x] Generate error types
+- [x] Generate event emission
+- [x] Handle `self` → account access translation
 
 #### Success Criteria
 
-- Generated Rust compiles with `cargo build-sbf`
-- Output is readable and debuggable
-- Preserves SolScript semantics
+- [x] Generated Rust compiles with `cargo build-sbf`
+- [x] Output is readable and debuggable
+- [x] Preserves SolScript semantics
 
 ---
 
 ### Milestone 2.2: Standard Library Stubs
 
+**Status: COMPLETE**
+
 **Goal:** Provide SolScript standard library that maps to Anchor/Solana.
 
 #### Tasks
 
-- [ ] `@solana/token` → SPL Token CPI wrappers
-- [ ] `@solana/account` → Account creation helpers
-- [ ] `@solana/pda` → PDA derivation utilities
-- [ ] `@solana/cpi` → Generic CPI helpers
-- [ ] `@solana/clock` → Clock sysvar access
-- [ ] `@solana/rent` → Rent calculations
-- [ ] `@solana/crypto` → Signature verification
+- [x] `@solana/token` → SPL Token CPI wrappers
+- [x] `@solana/account` → Account creation helpers
+- [x] `@solana/pda` → PDA derivation utilities
+- [x] `@solana/cpi` → Generic CPI helpers
+- [x] `@solana/clock` → Clock sysvar access
+- [x] `@solana/rent` → Rent calculations
+- [x] `@solana/crypto` → Signature verification
 
 #### Success Criteria
 
-- Standard library imports resolve correctly
-- Generated code uses appropriate Solana/Anchor APIs
+- [x] Standard library imports resolve correctly
+- [x] Generated code uses appropriate Solana/Anchor APIs
 
 ---
 
 ### Milestone 2.3: Full Example Contract
+
+**Status: COMPLETE**
 
 **Goal:** Compile a complete contract using most language features.
 
@@ -439,24 +474,28 @@ contract TokenContract {
 
 #### Tasks
 
-- [ ] Compile full token contract
-- [ ] Deploy to Solana devnet
-- [ ] Test all functions via CLI/client
-- [ ] Verify event emission
-- [ ] Verify error handling
+- [x] Compile full token contract
+- [x] Deploy to Solana devnet
+- [x] Test all functions via CLI/client
+- [x] Verify event emission
+- [x] Verify error handling
 
 #### Success Criteria
 
-- Contract deploys and runs on devnet
-- All functions work correctly
-- Events visible in transaction logs
-- Errors returned appropriately
+- [x] Contract deploys and runs on devnet
+- [x] All functions work correctly
+- [x] Events visible in transaction logs
+- [x] Errors returned appropriately
 
 ---
 
 ## Phase 3: CLI & Developer Experience
 
+**Status: COMPLETE**
+
 ### Milestone 3.1: CLI Tool
+
+**Status: COMPLETE**
 
 **Goal:** Create the `solscript` CLI.
 
@@ -464,42 +503,50 @@ contract TokenContract {
 
 ```bash
 solscript init <project-name>    # Create new project
-solscript build                  # Compile to deployable program
+solscript build                  # Compile to Rust/Anchor
+solscript build-bpf              # Compile to BPF bytecode
+solscript build-bpf --llvm       # Direct LLVM compilation (fast)
 solscript test                   # Run tests
 solscript deploy                 # Deploy to cluster
 solscript verify                 # Verify deployed program
 solscript fmt                    # Format source code
 solscript check                  # Type check without building
+solscript lsp                    # Start Language Server
 ```
 
 #### Tasks
 
-- [ ] Implement `init` with project template
-- [ ] Implement `build` pipeline
-- [ ] Implement `check` for fast feedback
-- [ ] Implement `fmt` code formatter
-- [ ] Configuration via `solscript.toml`
-- [ ] Colored error output
-- [ ] Watch mode for development
+- [x] Implement `init` with project template
+- [x] Implement `build` pipeline
+- [x] Implement `build-bpf` for BPF compilation
+- [x] Implement `check` for fast feedback
+- [x] Implement `fmt` code formatter
+- [x] Configuration via `solscript.toml`
+- [x] Colored error output
+- [x] Watch mode for development
 
 ---
 
 ### Milestone 3.2: Testing Framework
 
+**Status: COMPLETE**
+
 **Goal:** Enable testing SolScript contracts.
 
 #### Tasks
 
-- [ ] `#[test]` attribute support
-- [ ] `#[should_fail]` attribute
-- [ ] Test context/fixture setup
-- [ ] Assert macros
-- [ ] Test isolation (BanksClient)
-- [ ] Coverage reporting
+- [x] `#[test]` attribute support
+- [x] `#[should_fail]` attribute
+- [x] Test context/fixture setup
+- [x] Assert macros
+- [x] Test isolation (BanksClient)
+- [ ] Coverage reporting (planned)
 
 ---
 
 ### Milestone 3.3: Error Messages
+
+**Status: COMPLETE**
 
 **Goal:** Provide excellent error messages.
 
@@ -525,11 +572,11 @@ error[E0002]: undefined variable
 
 #### Tasks
 
-- [ ] Source snippets in errors
-- [ ] Colored output
-- [ ] Suggestions/hints
-- [ ] Error codes with documentation
-- [ ] Multi-span errors
+- [x] Source snippets in errors
+- [x] Colored output
+- [x] Suggestions/hints
+- [x] Error codes with documentation
+- [x] Multi-span errors
 
 ---
 
@@ -537,34 +584,64 @@ error[E0002]: undefined variable
 
 ### Milestone 4.1: Direct BPF Compilation
 
-**Goal:** Skip Rust codegen for faster compilation.
+**Status: COMPLETE**
+
+**Goal:** Skip Rust codegen for faster compilation via direct LLVM-to-BPF compilation.
+
+#### Implementation Details
+
+The direct BPF compilation path uses LLVM 18 with inkwell bindings to generate Solana BPF bytecode directly from the AST, bypassing the Rust/Anchor intermediate step.
+
+**Key Components:**
+- `solscript-bpf` crate with LLVM feature flag
+- Type mapping from SolScript types to LLVM types
+- Solana syscall intrinsics (sol_log, sol_invoke, PDA derivation, etc.)
+- Instruction dispatch with Anchor-compatible discriminators
+- BPF-specific function attributes (nounwind, norecurse)
+
+**Usage:**
+```bash
+# Requires LLVM 18 with BPF target
+export LLVM_SYS_180_PREFIX=/usr/lib/llvm-18
+cargo build -p solscript-bpf --features llvm
+
+# Compile a contract
+solscript build-bpf --llvm my_contract.sol -o target/deploy
+```
 
 #### Tasks
 
-- [ ] LLVM IR generation
-- [ ] BPF backend integration
-- [ ] Optimization passes
-- [ ] Debug info generation
+- [x] LLVM IR generation
+- [x] BPF backend integration
+- [x] Optimization passes (O0-O3)
+- [x] Solana syscall intrinsics
+- [x] Entrypoint with instruction dispatch
+- [x] Anchor-compatible discriminators
+- [ ] Debug info generation (planned)
 
 ---
 
 ### Milestone 4.2: Language Server (LSP)
 
+**Status: COMPLETE (Basic)**
+
 **Goal:** IDE support via LSP.
 
 #### Features
 
-- [ ] Go to definition
-- [ ] Find references
-- [ ] Hover information
-- [ ] Autocomplete
-- [ ] Inline errors
-- [ ] Rename symbol
-- [ ] Code actions
+- [x] Go to definition
+- [x] Find references
+- [x] Hover information
+- [x] Autocomplete
+- [x] Inline errors
+- [ ] Rename symbol (planned)
+- [ ] Code actions (planned)
 
 ---
 
 ### Milestone 4.3: Package Manager
+
+**Status: Planned**
 
 **Goal:** Share and reuse SolScript libraries.
 
@@ -580,71 +657,158 @@ error[E0002]: undefined variable
 
 ## Phase 5: Ecosystem
 
+**Status: IN PROGRESS**
+
 ### Milestone 5.1: Documentation Site
 
-- [ ] Language guide
-- [ ] API reference
-- [ ] Tutorials
-- [ ] Examples gallery
+**Status: COMPLETE (Basic)**
+
+- [x] Language guide
+- [x] API reference
+- [x] Tutorials
+- [x] Examples gallery
+
+Documentation available at `documentation/docs/` using mdBook.
 
 ### Milestone 5.2: VS Code Extension
 
-- [ ] Syntax highlighting
-- [ ] LSP integration
-- [ ] Snippets
-- [ ] Debugger integration
+**Status: COMPLETE (Basic)**
+
+- [x] Syntax highlighting
+- [x] LSP integration
+- [x] Snippets
+- [ ] Debugger integration (planned)
+
+Extension available in `editors/vscode/`.
 
 ### Milestone 5.3: Example Projects
 
-- [ ] Token contract
-- [ ] NFT marketplace
-- [ ] DeFi AMM
-- [ ] Governance DAO
+**Status: COMPLETE**
+
+- [x] Counter contract (`examples/counter/`)
+- [x] Token contract (`examples/token/`)
+- [x] Simple contract (`examples/simple/`)
+- [ ] NFT marketplace (planned)
+- [ ] DeFi AMM (planned)
+- [ ] Governance DAO (planned)
 
 ---
 
 ## Implementation Order
 
 ```
-Phase 1 (Core Compiler)
-├── 1.1 Project Setup & Lexer
-├── 1.2 Parser & AST
-├── 1.3 Symbol Table
-├── 1.4 Type System
-└── 1.5 Semantic Analysis
+Phase 1 (Core Compiler)               [COMPLETE]
+├── 1.1 Project Setup & Lexer         [COMPLETE]
+├── 1.2 Parser & AST                  [COMPLETE]
+├── 1.3 Symbol Table                  [COMPLETE]
+├── 1.4 Type System                   [COMPLETE]
+└── 1.5 Semantic Analysis             [COMPLETE]
 
-Phase 2 (Code Generation)
-├── 2.1 Rust Code Generation
-├── 2.2 Standard Library Stubs
-└── 2.3 Full Example Contract  ← FIRST TARGET
+Phase 2 (Code Generation)             [COMPLETE]
+├── 2.1 Rust Code Generation          [COMPLETE]
+├── 2.2 Standard Library Stubs        [COMPLETE]
+└── 2.3 Full Example Contract         [COMPLETE]
 
-Phase 3 (Developer Experience)
-├── 3.1 CLI Tool
-├── 3.2 Testing Framework
-└── 3.3 Error Messages
+Phase 3 (Developer Experience)        [COMPLETE]
+├── 3.1 CLI Tool                      [COMPLETE]
+├── 3.2 Testing Framework             [COMPLETE]
+└── 3.3 Error Messages                [COMPLETE]
 
 Phase 4 (Advanced)
-├── 4.1 Direct BPF Compilation
-├── 4.2 Language Server
-└── 4.3 Package Manager
+├── 4.1 Direct BPF Compilation        [COMPLETE]
+├── 4.2 Language Server               [COMPLETE - Basic]
+└── 4.3 Package Manager               [PLANNED]
 
-Phase 5 (Ecosystem)
-├── 5.1 Documentation
-├── 5.2 VS Code Extension
-└── 5.3 Example Projects
+Phase 5 (Ecosystem)                   [IN PROGRESS]
+├── 5.1 Documentation                 [COMPLETE - Basic]
+├── 5.2 VS Code Extension             [COMPLETE - Basic]
+└── 5.3 Example Projects              [IN PROGRESS]
 ```
 
 ---
 
 ## Success Criteria (Overall)
 
-| Milestone | Criteria |
-|-----------|----------|
-| **MVP** | Full example contract compiles and deploys to devnet |
-| **Alpha** | CLI usable, basic error messages, 3 example contracts |
-| **Beta** | LSP working, package manager, comprehensive tests |
-| **1.0** | Production-ready, audited, documented |
+| Milestone | Criteria | Status |
+|-----------|----------|--------|
+| **MVP** | Full example contract compiles and deploys to devnet | **ACHIEVED** |
+| **Alpha** | CLI usable, basic error messages, 3 example contracts | **ACHIEVED** |
+| **Beta** | LSP working, package manager, comprehensive tests | **PARTIAL** (LSP done, package manager planned) |
+| **1.0** | Production-ready, audited, documented | In Progress |
 
 ---
 
-*Last updated: January 2, 2026*
+## Compilation Modes
+
+SolScript supports two compilation modes:
+
+### 1. Anchor Mode (Default)
+Generates Rust/Anchor code, then uses `cargo build-sbf`:
+```bash
+solscript build-bpf my_contract.sol
+```
+
+**Pros:** Well-tested, full Anchor ecosystem support
+**Cons:** Slower compilation, requires Rust toolchain
+
+### 2. Direct LLVM Mode
+Compiles directly to BPF bytecode via LLVM:
+```bash
+solscript build-bpf --llvm my_contract.sol
+```
+
+**Pros:** Faster compilation, smaller output
+**Cons:** Requires LLVM 18, fewer optimizations
+
+---
+
+## Architecture
+
+```
+                    ┌─────────────────┐
+                    │   Source Code   │
+                    │   (.sol file)   │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │     Parser      │
+                    │  (pest grammar) │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │       AST       │
+                    │ (solscript-ast) │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │   Type Check    │
+                    │(solscript-typeck│
+                    └────────┬────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+     ┌────────▼────────┐          ┌────────▼────────┐
+     │  Anchor Codegen │          │  LLVM Codegen   │
+     │(solscript-codegen)         │ (solscript-bpf) │
+     └────────┬────────┘          └────────┬────────┘
+              │                             │
+     ┌────────▼────────┐          ┌────────▼────────┐
+     │   Rust/Anchor   │          │    LLVM IR      │
+     │     Source      │          │                 │
+     └────────┬────────┘          └────────┬────────┘
+              │                             │
+     ┌────────▼────────┐          ┌────────▼────────┐
+     │ cargo build-sbf │          │   BPF Target    │
+     └────────┬────────┘          └────────┬────────┘
+              │                             │
+              └──────────────┬──────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │   .so Program   │
+                    │  (deployable)   │
+                    └─────────────────┘
+```
+
+---
+
+*Last updated: January 18, 2026*

@@ -1,0 +1,10 @@
+[package]
+name = "multisig"
+version = "0.1.0"
+description = "Multi-signature wallet requiring multiple approvals"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"

@@ -469,7 +469,7 @@ pub fn lower_to_ir(program: &ast::Program) -> Result<Vec<SolanaProgram>, Codegen
                 interface_names.insert(i.name.name.to_string());
             }
             ast::Item::Contract(c) => {
-                // Also collect events and errors defined inside contracts
+                // Also collect events, errors, structs, and enums defined inside contracts
                 for member in &c.members {
                     match member {
                         ast::ContractMember::Event(e) => {
@@ -477,6 +477,12 @@ pub fn lower_to_ir(program: &ast::Program) -> Result<Vec<SolanaProgram>, Codegen
                         }
                         ast::ContractMember::Error(e) => {
                             errors.push(lower_error(e)?);
+                        }
+                        ast::ContractMember::Struct(s) => {
+                            structs.push(lower_struct(s)?);
+                        }
+                        ast::ContractMember::Enum(e) => {
+                            enums.push(lower_enum(e));
                         }
                         _ => {}
                     }
@@ -714,6 +720,9 @@ fn lower_contract(
             ast::ContractMember::Event(_) | ast::ContractMember::Error(_) => {
                 // Events and errors are handled at the top level during lowering
             }
+            ast::ContractMember::Struct(_) | ast::ContractMember::Enum(_) => {
+                // Structs and enums are handled at the top level during lowering
+            }
         }
     }
 
@@ -906,7 +915,7 @@ fn lower_constructor(ctor: &ast::ConstructorDef, ctx: &LoweringContext) -> Resul
         body,
         is_public: true,
         is_view: false,
-        is_payable: false, // TODO: Support payable constructors
+        is_payable: ctor.modifiers.iter().any(|m| m.name.name == "payable"),
         uses_token_program: collector.uses_token_program,
         modifiers: Vec::new(),
         mapping_accesses: collector.accesses,

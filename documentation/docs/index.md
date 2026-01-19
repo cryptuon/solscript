@@ -7,33 +7,42 @@ SolScript brings Solidity-style syntax to Solana, making it easier for developer
 ## Features
 
 - **Familiar Syntax** - Solidity-style syntax that's easy to learn
+- **Automatic PDA Handling** - Mappings become PDAs automatically
 - **Solana Native** - Compiles to optimized Solana BPF programs
 - **Type Safe** - Strong static typing catches errors at compile time
-- **Built-in Testing** - Write and run tests directly in your contracts
+- **SPL Token Support** - Built-in token transfer, mint, burn operations
 - **IDE Support** - Language server for VS Code and other editors
 - **Fast Compilation** - Quick feedback during development
 
+!!! info "Beta Status"
+    SolScript is in beta. Most features work well, but some Solana-specific
+    capabilities are still in development. See the [Roadmap](reference/roadmap.md)
+    for current limitations and planned improvements.
+
 ## Quick Example
 
-```solidity
+```solscript
 contract Counter {
-    uint64 public count;
-    address public owner;
+    @state count: u64;
+    @state owner: Address;
 
-    event CountChanged(address indexed by, uint64 newValue);
+    event CountChanged(by: Address, newValue: u64);
 
-    constructor() {
-        owner = msg.sender;
-        count = 0;
+    fn init() {
+        self.owner = tx.sender;
+        self.count = 0;
     }
 
-    function increment() public {
-        count += 1;
-        emit CountChanged(msg.sender, count);
+    @public
+    fn increment() {
+        self.count += 1;
+        emit CountChanged(tx.sender, self.count);
     }
 
-    function getCount() public view returns (uint64) {
-        return count;
+    @public
+    @view
+    fn get_count(): u64 {
+        return self.count;
     }
 }
 ```
@@ -86,12 +95,21 @@ If you're coming from Ethereum, SolScript feels like home. Use familiar syntax w
 
 Skip the boilerplate of Anchor/Rust. Write cleaner, more maintainable code with automatic account management and PDA derivation.
 
-### For Everyone
+### Key Advantages
 
+- **Automatic PDAs**: Mappings become PDA-based storage automatically
 - **Readable**: Code that's easy to understand and audit
 - **Safe**: Built-in overflow protection and access control
-- **Fast**: Optimized compilation to Solana BPF
-- **Tested**: Comprehensive testing framework included
+- **Fast**: Generates optimized Anchor/Rust code
+- **Extensible**: Generated code can be customized when needed
+
+### Current Limitations
+
+SolScript handles most common patterns, but some Solana features require workarounds:
+
+- **No direct SOL transfers** - Use wrapped SOL (SPL Token)
+- **No Token 2022** - Only SPL Token supported
+- **Some syntax restrictions** - See [Roadmap](reference/roadmap.md)
 
 ## Installation
 

@@ -1,0 +1,37 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## How It Works
+
+1. **Buyer** creates escrow with seller address, arbiter, deadline
+2. **Buyer** funds the escrow with payment
+3. **Buyer** releases funds when satisfied, OR
+4. **Seller** issues refund voluntarily, OR
+5. **Buyer** claims refund after deadline, OR
+6. Either party raises **dispute** for arbiter resolution
+
+## Contract Interface
+
+### Functions
+- `createEscrow(seller, arbiter, deadline, description)` - Create & fund
+- `release(id)` - Release to seller (buyer only)
+- `refund(id)` - Refund to buyer
+- `raiseDispute(id)` - Raise dispute (buyer or seller)
+- `resolveDispute(id, releaseToSeller)` - Resolve (arbiter only)
+
+## Build & Deploy
+
+```bash
+solscript build src/main.sol -o ./output
+solscript deploy src/main.sol --cluster devnet
+```
+
+## License
+
+MIT

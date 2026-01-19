@@ -104,6 +104,8 @@ pub enum ContractMember {
     Modifier(ModifierDef),
     Event(EventDef),
     Error(ErrorDef),
+    Struct(StructDef),
+    Enum(EnumDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

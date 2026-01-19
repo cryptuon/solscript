@@ -1,0 +1,34 @@
+# {{CONTRACT_NAME}}
+
+{{DESCRIPTION}}
+
+## Features
+
+This template demonstrates:
+{{FEATURES_LIST}}
+
+## Contract Interface
+
+### Functions
+- `registerVoter(voter, weight)` - Register voter (admin only)
+- `createProposal(description, duration)` - Create proposal (admin only)
+- `vote(proposalId, choice)` - Cast vote (registered voters only)
+- `execute(proposalId)` - Execute completed proposal (admin only)
+- `getProposal(id)` - View proposal details
+- `isVotingActive(id)` - Check if voting is open
+
+### Events
+- `ProposalCreated(id, description, deadline)`
+- `Voted(proposalId, voter, vote, weight)`
+- `ProposalExecuted(id, passed)`
+
+## Build & Deploy
+
+```bash
+solscript build src/main.sol -o ./output
+solscript deploy src/main.sol --cluster devnet
+```
+
+## License
+
+MIT

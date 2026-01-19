@@ -8,7 +8,8 @@ Before installing SolScript, ensure you have:
 
 - **Rust** (1.75 or later) - [Install Rust](https://rustup.rs/)
 - **Solana CLI** - [Install Solana](https://docs.solana.com/cli/install-solana-cli-tools)
-- **Anchor** (optional) - [Install Anchor](https://www.anchor-lang.com/docs/installation)
+- **Anchor** (optional, for Anchor mode) - [Install Anchor](https://www.anchor-lang.com/docs/installation)
+- **LLVM 18** (optional, for direct LLVM mode) - See below
 
 ## Install SolScript
 
@@ -24,6 +25,13 @@ cargo install solscript
 git clone https://github.com/solscript/solscript
 cd solscript
 cargo install --path crates/solscript-cli
+```
+
+### With LLVM Support (Direct BPF Compilation)
+
+```bash
+# Install LLVM 18 first (see below), then:
+cargo install --path crates/solscript-cli --features llvm
 ```
 
 ### Verify Installation
@@ -81,6 +89,35 @@ cargo install --git https://github.com/coral-xyz/anchor avm --locked
 # Install latest Anchor
 avm install latest
 avm use latest
+```
+
+### LLVM 18 (For Direct BPF Compilation)
+
+Direct LLVM compilation bypasses Anchor/Rust for faster builds. Requires LLVM 18.
+
+**Ubuntu/Debian:**
+```bash
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 18
+sudo apt install llvm-18-dev libpolly-18-dev
+export LLVM_SYS_180_PREFIX=/usr/lib/llvm-18
+```
+
+**macOS:**
+```bash
+brew install llvm@18
+export LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)
+```
+
+**Build with LLVM feature:**
+```bash
+cargo build -p solscript-bpf --features llvm
+```
+
+**Verify LLVM:**
+```bash
+llvm-config-18 --version  # Should show 18.x
 ```
 
 ## IDE Setup

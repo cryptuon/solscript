@@ -1,0 +1,10 @@
+[package]
+name = "storage"
+version = "0.1.0"
+description = "Demonstrates storage types and patterns"
+
+[solana]
+cluster = "devnet"
+
+[build]
+output_dir = "./target"
