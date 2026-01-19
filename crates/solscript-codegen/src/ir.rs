@@ -3,8 +3,8 @@
 //! This module defines an IR that's closer to Solana's execution model,
 //! making it easier to generate Anchor Rust code.
 
-use solscript_ast::{self as ast, Visibility, StateMutability};
 use crate::error::CodegenError;
+use solscript_ast::{self as ast, StateMutability, Visibility};
 
 /// A Solana program (corresponds to a SolScript contract)
 #[derive(Debug, Clone)]
@@ -174,11 +174,11 @@ pub enum SolanaType {
     I64,
     I128,
     Bool,
-    Pubkey,        // Solana's address type
-    Signer,        // A required signer account
+    Pubkey, // Solana's address type
+    Signer, // A required signer account
     String,
     Bytes,
-    FixedBytes(usize),  // bytes1 through bytes32 -> [u8; N]
+    FixedBytes(usize), // bytes1 through bytes32 -> [u8; N]
     Array(Box<SolanaType>, usize),
     Vec(Box<SolanaType>),
     Option(Box<SolanaType>),
@@ -245,7 +245,7 @@ pub enum Statement {
 pub enum Expression {
     Literal(Literal),
     Var(String),
-    StateAccess(String),  // Access to state field
+    StateAccess(String), // Access to state field
     /// Mapping access: mapping_name[key1][key2]... → ctx.accounts.{account_name}.value
     MappingAccess {
         mapping_name: String,
@@ -254,13 +254,13 @@ pub enum Expression {
         /// Generated account name for this access point
         account_name: String,
     },
-    MsgSender,            // msg.sender → ctx.accounts.signer
-    MsgValue,             // msg.value (not directly supported in Solana)
-    BlockTimestamp,       // block.timestamp → Clock::get()
+    MsgSender,      // msg.sender → ctx.accounts.signer
+    MsgValue,       // msg.value (not directly supported in Solana)
+    BlockTimestamp, // block.timestamp → Clock::get()
     // Solana Clock sysvar fields
-    ClockSlot,            // clock.slot → Clock::get()?.slot
-    ClockEpoch,           // clock.epoch → Clock::get()?.epoch
-    ClockUnixTimestamp,   // clock.unix_timestamp → Clock::get()?.unix_timestamp
+    ClockSlot,          // clock.slot → Clock::get()?.slot
+    ClockEpoch,         // clock.epoch → Clock::get()?.epoch
+    ClockUnixTimestamp, // clock.unix_timestamp → Clock::get()?.unix_timestamp
     // Solana Rent sysvar methods
     RentMinimumBalance {
         data_len: Box<Expression>,
@@ -415,8 +415,8 @@ pub enum Literal {
     Int(i128),
     Uint(u128),
     String(String),
-    Pubkey(String),  // Base58 encoded
-    ZeroAddress,     // address(0) - the default/null address
+    Pubkey(String),   // Base58 encoded
+    ZeroAddress,      // address(0) - the default/null address
     ZeroBytes(usize), // bytes32(0) etc. - zero-filled fixed bytes
 }
 
@@ -522,7 +522,15 @@ pub fn lower_to_ir(program: &ast::Program) -> Result<Vec<SolanaProgram>, Codegen
             if contract.is_abstract {
                 continue;
             }
-            let prog = lower_contract(contract, &events, &errors, &structs, &enums, &contracts, &interface_names)?;
+            let prog = lower_contract(
+                contract,
+                &events,
+                &errors,
+                &structs,
+                &enums,
+                &contracts,
+                &interface_names,
+            )?;
             programs.push(prog);
         }
     }
@@ -588,7 +596,13 @@ impl MappingAccessCollector {
     }
 
     /// Record a mapping access and return a unique account name
-    fn record_access(&mut self, mapping_name: &str, keys: Vec<Expression>, is_write: bool, should_close: bool) -> String {
+    fn record_access(
+        &mut self,
+        mapping_name: &str,
+        keys: Vec<Expression>,
+        is_write: bool,
+        should_close: bool,
+    ) -> String {
         // Generate unique account name based on mapping name and counter
         let account_name = format!("{}_entry_{}", to_snake_case(mapping_name), self.counter);
         self.counter += 1;
@@ -797,7 +811,10 @@ fn get_should_fail_message(attrs: &[ast::Attribute]) -> Option<String> {
 }
 
 /// Lower a test function
-fn lower_test_function(func: &ast::FnDef, ctx: &LoweringContext) -> Result<TestFunction, CodegenError> {
+fn lower_test_function(
+    func: &ast::FnDef,
+    ctx: &LoweringContext,
+) -> Result<TestFunction, CodegenError> {
     let name = func.name.name.to_string();
     let mut collector = MappingAccessCollector::new();
 
@@ -841,13 +858,23 @@ fn lower_function(func: &ast::FnDef, ctx: &LoweringContext) -> Result<Instructio
         ));
     };
 
-    let is_public = matches!(func.visibility, Some(Visibility::Public) | Some(Visibility::External));
-    let is_view = func.state_mutability.iter().any(|m| matches!(m, StateMutability::View | StateMutability::Pure));
-    let is_payable = func.state_mutability.iter().any(|m| matches!(m, StateMutability::Payable));
+    let is_public = matches!(
+        func.visibility,
+        Some(Visibility::Public) | Some(Visibility::External)
+    );
+    let is_view = func
+        .state_mutability
+        .iter()
+        .any(|m| matches!(m, StateMutability::View | StateMutability::Pure));
+    let is_payable = func
+        .state_mutability
+        .iter()
+        .any(|m| matches!(m, StateMutability::Payable));
 
     let mut modifiers = Vec::new();
     for m in &func.modifiers {
-        let args: Vec<Expression> = m.args
+        let args: Vec<Expression> = m
+            .args
             .iter()
             .map(|a| lower_expr(&a.value, ctx, &mut collector))
             .collect::<Result<Vec<_>, _>>()?;
@@ -884,7 +911,11 @@ fn body_contains_selfdestruct(stmts: &[Statement]) -> bool {
     for stmt in stmts {
         match stmt {
             Statement::Selfdestruct { .. } => return true,
-            Statement::If { then_block, else_block, .. } => {
+            Statement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
                 if body_contains_selfdestruct(then_block) {
                     return true;
                 }
@@ -910,7 +941,10 @@ fn body_contains_selfdestruct(stmts: &[Statement]) -> bool {
     false
 }
 
-fn lower_constructor(ctor: &ast::ConstructorDef, ctx: &LoweringContext) -> Result<Instruction, CodegenError> {
+fn lower_constructor(
+    ctor: &ast::ConstructorDef,
+    ctx: &LoweringContext,
+) -> Result<Instruction, CodegenError> {
     let mut collector = MappingAccessCollector::new();
 
     let params: Vec<InstructionParam> = ctor
@@ -942,7 +976,10 @@ fn lower_constructor(ctor: &ast::ConstructorDef, ctx: &LoweringContext) -> Resul
     })
 }
 
-fn lower_modifier(modifier: &ast::ModifierDef, ctx: &LoweringContext) -> Result<ModifierDefinition, CodegenError> {
+fn lower_modifier(
+    modifier: &ast::ModifierDef,
+    ctx: &LoweringContext,
+) -> Result<ModifierDefinition, CodegenError> {
     let mut collector = MappingAccessCollector::new();
 
     let params: Vec<InstructionParam> = modifier
@@ -1052,10 +1089,13 @@ fn lower_type(ty: &ast::TypeExpr) -> Result<SolanaType, CodegenError> {
                 // Fixed-size bytes: bytes1 through bytes32
                 s if s.starts_with("bytes") => {
                     if let Ok(n) = s[5..].parse::<usize>() {
-                        if n >= 1 && n <= 32 {
+                        if (1..=32).contains(&n) {
                             Ok(SolanaType::FixedBytes(n))
                         } else {
-                            Err(CodegenError::UnsupportedFeature(format!("Invalid bytes size: {}", n)))
+                            Err(CodegenError::UnsupportedFeature(format!(
+                                "Invalid bytes size: {}",
+                                n
+                            )))
                         }
                     } else {
                         Ok(SolanaType::Custom(s.to_string()))
@@ -1081,25 +1121,42 @@ fn lower_type(ty: &ast::TypeExpr) -> Result<SolanaType, CodegenError> {
             let value = lower_type(&mapping.value)?;
             Ok(SolanaType::Mapping(Box::new(key), Box::new(value)))
         }
-        ast::TypeExpr::Tuple(_) => {
-            Err(CodegenError::UnsupportedFeature("Tuple types".to_string()))
-        }
+        ast::TypeExpr::Tuple(_) => Err(CodegenError::UnsupportedFeature("Tuple types".to_string())),
     }
 }
 
-fn lower_block(block: &ast::Block, ctx: &LoweringContext, collector: &mut MappingAccessCollector) -> Result<Vec<Statement>, CodegenError> {
-    block.stmts.iter().map(|s| lower_stmt(s, ctx, collector)).collect()
+fn lower_block(
+    block: &ast::Block,
+    ctx: &LoweringContext,
+    collector: &mut MappingAccessCollector,
+) -> Result<Vec<Statement>, CodegenError> {
+    block
+        .stmts
+        .iter()
+        .map(|s| lower_stmt(s, ctx, collector))
+        .collect()
 }
 
-fn lower_stmt(stmt: &ast::Stmt, ctx: &LoweringContext, collector: &mut MappingAccessCollector) -> Result<Statement, CodegenError> {
+fn lower_stmt(
+    stmt: &ast::Stmt,
+    ctx: &LoweringContext,
+    collector: &mut MappingAccessCollector,
+) -> Result<Statement, CodegenError> {
     match stmt {
         ast::Stmt::VarDecl(v) => Ok(Statement::VarDecl {
             name: v.name.name.to_string(),
             ty: lower_type(&v.ty)?,
-            value: v.initializer.as_ref().map(|e| lower_expr(e, ctx, collector)).transpose()?,
+            value: v
+                .initializer
+                .as_ref()
+                .map(|e| lower_expr(e, ctx, collector))
+                .transpose()?,
         }),
         ast::Stmt::Return(r) => Ok(Statement::Return(
-            r.value.as_ref().map(|e| lower_expr(e, ctx, collector)).transpose()?,
+            r.value
+                .as_ref()
+                .map(|e| lower_expr(e, ctx, collector))
+                .transpose()?,
         )),
         ast::Stmt::If(i) => lower_if_stmt(i, ctx, collector),
         ast::Stmt::While(w) => Ok(Statement::While {
@@ -1109,30 +1166,35 @@ fn lower_stmt(stmt: &ast::Stmt, ctx: &LoweringContext, collector: &mut MappingAc
         ast::Stmt::For(f) => lower_for_stmt(f, ctx, collector),
         ast::Stmt::Emit(e) => Ok(Statement::Emit {
             event: e.event.name.to_string(),
-            args: e.args.iter().map(|a| lower_expr(&a.value, ctx, collector)).collect::<Result<Vec<_>, _>>()?,
+            args: e
+                .args
+                .iter()
+                .map(|a| lower_expr(&a.value, ctx, collector))
+                .collect::<Result<Vec<_>, _>>()?,
         }),
         ast::Stmt::Require(r) => Ok(Statement::Require {
             condition: lower_expr(&r.condition, ctx, collector)?,
             message: r.message.as_ref().map(|s| s.to_string()),
         }),
-        ast::Stmt::Revert(r) => {
-            match &r.kind {
-                ast::RevertKind::Message(msg) => Ok(Statement::Require {
-                    condition: Expression::Literal(Literal::Bool(false)),
-                    message: msg.as_ref().map(|s| s.to_string()).or_else(|| Some("Reverted".to_string())),
-                }),
-                ast::RevertKind::Error { name, args } => {
-                    let lowered_args: Vec<Expression> = args
-                        .iter()
-                        .map(|a| lower_expr(&a.value, ctx, collector))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    Ok(Statement::RevertWithError {
-                        error_name: name.name.to_string(),
-                        args: lowered_args,
-                    })
-                }
+        ast::Stmt::Revert(r) => match &r.kind {
+            ast::RevertKind::Message(msg) => Ok(Statement::Require {
+                condition: Expression::Literal(Literal::Bool(false)),
+                message: msg
+                    .as_ref()
+                    .map(|s| s.to_string())
+                    .or_else(|| Some("Reverted".to_string())),
+            }),
+            ast::RevertKind::Error { name, args } => {
+                let lowered_args: Vec<Expression> = args
+                    .iter()
+                    .map(|a| lower_expr(&a.value, ctx, collector))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(Statement::RevertWithError {
+                    error_name: name.name.to_string(),
+                    args: lowered_args,
+                })
             }
-        }
+        },
         ast::Stmt::Delete(d) => {
             let target = lower_expr(&d.target, ctx, collector)?;
             // If we're deleting a mapping access, mark it as should_close
@@ -1155,14 +1217,16 @@ fn lower_stmt(stmt: &ast::Stmt, ctx: &LoweringContext, collector: &mut MappingAc
     }
 }
 
-fn lower_if_stmt(i: &ast::IfStmt, ctx: &LoweringContext, collector: &mut MappingAccessCollector) -> Result<Statement, CodegenError> {
+fn lower_if_stmt(
+    i: &ast::IfStmt,
+    ctx: &LoweringContext,
+    collector: &mut MappingAccessCollector,
+) -> Result<Statement, CodegenError> {
     let condition = lower_expr(&i.condition, ctx, collector)?;
     let then_block = lower_block(&i.then_block, ctx, collector)?;
     let else_block = match &i.else_branch {
         Some(ast::ElseBranch::Else(block)) => Some(lower_block(block, ctx, collector)?),
-        Some(ast::ElseBranch::ElseIf(elif)) => {
-            Some(vec![lower_if_stmt(elif, ctx, collector)?])
-        }
+        Some(ast::ElseBranch::ElseIf(elif)) => Some(vec![lower_if_stmt(elif, ctx, collector)?]),
         None => None,
     };
 
@@ -1173,21 +1237,39 @@ fn lower_if_stmt(i: &ast::IfStmt, ctx: &LoweringContext, collector: &mut Mapping
     })
 }
 
-fn lower_for_stmt(f: &ast::ForStmt, ctx: &LoweringContext, collector: &mut MappingAccessCollector) -> Result<Statement, CodegenError> {
+fn lower_for_stmt(
+    f: &ast::ForStmt,
+    ctx: &LoweringContext,
+    collector: &mut MappingAccessCollector,
+) -> Result<Statement, CodegenError> {
     let init = match &f.init {
         Some(ast::ForInit::VarDecl(v)) => Some(Box::new(Statement::VarDecl {
             name: v.name.name.to_string(),
             ty: lower_type(&v.ty)?,
-            value: v.initializer.as_ref().map(|e| lower_expr(e, ctx, collector)).transpose()?,
+            value: v
+                .initializer
+                .as_ref()
+                .map(|e| lower_expr(e, ctx, collector))
+                .transpose()?,
         })),
-        Some(ast::ForInit::Expr(e)) => Some(Box::new(Statement::Expr(lower_expr(e, ctx, collector)?))),
+        Some(ast::ForInit::Expr(e)) => {
+            Some(Box::new(Statement::Expr(lower_expr(e, ctx, collector)?)))
+        }
         None => None,
     };
 
     Ok(Statement::For {
         init,
-        condition: f.condition.as_ref().map(|e| lower_expr(e, ctx, collector)).transpose()?,
-        update: f.update.as_ref().map(|e| lower_expr(e, ctx, collector)).transpose()?,
+        condition: f
+            .condition
+            .as_ref()
+            .map(|e| lower_expr(e, ctx, collector))
+            .transpose()?,
+        update: f
+            .update
+            .as_ref()
+            .map(|e| lower_expr(e, ctx, collector))
+            .transpose()?,
         body: lower_block(&f.body, ctx, collector)?,
     })
 }
@@ -1209,7 +1291,9 @@ fn extract_mapping_access<'a>(
 
     // Check if base is another index expression (nested mapping)
     if let ast::Expr::Index(inner) = base {
-        if let Some((mapping_name, mut keys)) = extract_mapping_access(&inner.expr, &inner.index, ctx)? {
+        if let Some((mapping_name, mut keys)) =
+            extract_mapping_access(&inner.expr, &inner.index, ctx)?
+        {
             // Add the outer key
             keys.push(index);
             return Ok(Some((mapping_name, keys)));
@@ -1219,7 +1303,11 @@ fn extract_mapping_access<'a>(
     Ok(None)
 }
 
-fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAccessCollector) -> Result<Expression, CodegenError> {
+fn lower_expr(
+    expr: &ast::Expr,
+    ctx: &LoweringContext,
+    collector: &mut MappingAccessCollector,
+) -> Result<Expression, CodegenError> {
     match expr {
         ast::Expr::Literal(lit) => lower_literal(lit),
         ast::Expr::Ident(ident) => {
@@ -1256,7 +1344,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                     "assert" => {
                         let condition = lower_expr(&c.args[0].value, ctx, collector)?;
                         let message = if c.args.len() > 1 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[1].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[1].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1273,7 +1362,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1291,7 +1381,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1309,7 +1400,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1327,7 +1419,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1345,7 +1438,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1363,7 +1457,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                         let left = lower_expr(&c.args[0].value, ctx, collector)?;
                         let right = lower_expr(&c.args[1].value, ctx, collector)?;
                         let message = if c.args.len() > 2 {
-                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value {
+                            if let ast::Expr::Literal(ast::Literal::String(s, _)) = &c.args[2].value
+                            {
                                 Some(s.to_string())
                             } else {
                                 None
@@ -1390,7 +1485,7 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                 // Handle bytes32(0), bytes4(0), etc. - zero-filled fixed bytes
                 if func_name.starts_with("bytes") && c.args.len() == 1 {
                     if let Ok(n) = func_name[5..].parse::<usize>() {
-                        if n >= 1 && n <= 32 {
+                        if (1..=32).contains(&n) {
                             if let ast::Expr::Literal(ast::Literal::Int(0, _)) = &c.args[0].value {
                                 return Ok(Expression::Literal(Literal::ZeroBytes(n)));
                             }
@@ -1420,7 +1515,11 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
 
                 Ok(Expression::Call {
                     func: func_name,
-                    args: c.args.iter().map(|a| lower_expr(&a.value, ctx, collector)).collect::<Result<Vec<_>, _>>()?,
+                    args: c
+                        .args
+                        .iter()
+                        .map(|a| lower_expr(&a.value, ctx, collector))
+                        .collect::<Result<Vec<_>, _>>()?,
                 })
             } else {
                 Err(CodegenError::UnsupportedFeature(
@@ -1431,12 +1530,18 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
         ast::Expr::MethodCall(m) => {
             let receiver = lower_expr(&m.receiver, ctx, collector)?;
             let method = m.method.name.to_string();
-            let args: Vec<Expression> = m.args.iter()
+            let args: Vec<Expression> = m
+                .args
+                .iter()
                 .map(|a| lower_expr(&a.value, ctx, collector))
                 .collect::<Result<Vec<_>, _>>()?;
 
             // Handle CPI calls: IERC20(programId).transfer(...) -> CpiCall
-            if let Expression::InterfaceCast { interface_name, program_id } = receiver {
+            if let Expression::InterfaceCast {
+                interface_name,
+                program_id,
+            } = receiver
+            {
                 return Ok(Expression::CpiCall {
                     program: program_id,
                     interface_name,
@@ -1545,7 +1650,8 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
                     .collect::<Result<Vec<_>, _>>()?;
 
                 // Record the mapping access (not closing)
-                let account_name = collector.record_access(&mapping_name, lowered_keys.clone(), true, false);
+                let account_name =
+                    collector.record_access(&mapping_name, lowered_keys.clone(), true, false);
                 return Ok(Expression::MappingAccess {
                     mapping_name,
                     keys: lowered_keys,
@@ -1631,7 +1737,11 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
             } else {
                 Ok(Expression::Call {
                     func: "vec!".to_string(),
-                    args: a.elements.iter().map(|e| lower_expr(e, ctx, collector)).collect::<Result<Vec<_>, _>>()?,
+                    args: a
+                        .elements
+                        .iter()
+                        .map(|e| lower_expr(e, ctx, collector))
+                        .collect::<Result<Vec<_>, _>>()?,
                 })
             }
         }
@@ -1651,7 +1761,7 @@ fn lower_expr(expr: &ast::Expr, ctx: &LoweringContext, collector: &mut MappingAc
 fn lower_literal(lit: &ast::Literal) -> Result<Expression, CodegenError> {
     match lit {
         ast::Literal::Bool(b, _) => Ok(Expression::Literal(Literal::Bool(*b))),
-        ast::Literal::Int(n, _) => Ok(Expression::Literal(Literal::Uint(*n as u128))),
+        ast::Literal::Int(n, _) => Ok(Expression::Literal(Literal::Uint(*n))),
         ast::Literal::HexInt(s, _) => {
             let n = u128::from_str_radix(s.trim_start_matches("0x"), 16)
                 .map_err(|_| CodegenError::TypeConversion(format!("Invalid hex: {}", s)))?;

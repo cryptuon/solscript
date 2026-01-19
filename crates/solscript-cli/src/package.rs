@@ -102,9 +102,7 @@ impl PackageManager {
 
         // Clone the repository
         let mut cmd = Command::new("git");
-        cmd.arg("clone")
-            .arg("--depth")
-            .arg("1"); // Shallow clone
+        cmd.arg("clone").arg("--depth").arg("1"); // Shallow clone
 
         // Add branch/tag if specified
         if let Some(git_ref) = dep.git_ref() {
@@ -195,7 +193,9 @@ impl PackageManager {
         println!("  Downloading from {}...", github_url);
 
         // Download using curl
-        let archive_path = self.packages_dir.join(format!("{}-{}.tar.gz", name, version));
+        let archive_path = self
+            .packages_dir
+            .join(format!("{}-{}.tar.gz", name, version));
 
         let output = Command::new("curl")
             .arg("-fsSL")
@@ -315,6 +315,7 @@ impl InstalledPackages {
 }
 
 /// Add a package to the project
+#[allow(clippy::too_many_arguments)]
 pub fn add_package(
     config_path: &Path,
     name: &str,
@@ -373,7 +374,10 @@ pub fn remove_package(config_path: &Path, name: &str) -> Result<()> {
     let mut config = Config::load(config_path)?;
 
     if config.remove_dependency(name).is_none() {
-        return Err(miette::miette!("Package '{}' not found in dependencies", name));
+        return Err(miette::miette!(
+            "Package '{}' not found in dependencies",
+            name
+        ));
     }
 
     config.save(config_path)?;
@@ -403,18 +407,4 @@ pub fn update_packages(config_path: &Path) -> Result<()> {
     }
 
     Ok(())
-}
-
-impl Default for DependencySpec {
-    fn default() -> Self {
-        Self {
-            version: None,
-            git: None,
-            branch: None,
-            tag: None,
-            rev: None,
-            path: None,
-            github: None,
-        }
-    }
 }

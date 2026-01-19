@@ -1,5 +1,11 @@
 # SolScript
 
+[![CI](https://github.com/cryptuon/solscript/actions/workflows/ci.yml/badge.svg)](https://github.com/cryptuon/solscript/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/solscript-cli.svg)](https://crates.io/crates/solscript-cli)
+[![Documentation](https://docs.rs/solscript-cli/badge.svg)](https://docs.rs/solscript-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-blue.svg)](https://www.rust-lang.org)
+
 **Write Solidity. Deploy to Solana.**
 
 SolScript lets you write smart contracts in familiar Solidity syntax and compile them to native Solana programs. No Rust required. No Anchor boilerplate. Just your contract logic.

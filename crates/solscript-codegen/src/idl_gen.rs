@@ -11,6 +11,12 @@ pub struct IdlGenerator {
     program_name: String,
 }
 
+impl Default for IdlGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IdlGenerator {
     pub fn new() -> Self {
         Self {
@@ -39,11 +45,15 @@ impl IdlGenerator {
             .map_err(|e| CodegenError::GenerationFailed(format!("Failed to serialize IDL: {}", e)))
     }
 
-    fn generate_instructions(&self, ir: &SolanaProgram) -> Result<Vec<IdlInstruction>, CodegenError> {
+    fn generate_instructions(
+        &self,
+        ir: &SolanaProgram,
+    ) -> Result<Vec<IdlInstruction>, CodegenError> {
         let mut instructions = Vec::new();
 
         for instr in &ir.instructions {
-            let args: Vec<IdlField> = instr.params
+            let args: Vec<IdlField> = instr
+                .params
                 .iter()
                 .map(|p| IdlField {
                     name: to_camel_case_lower(&p.name),
@@ -87,7 +97,10 @@ impl IdlGenerator {
                 name: to_camel_case_lower(&instr.name),
                 accounts,
                 args,
-                returns: instr.returns.as_ref().map(|t| self.solana_type_to_idl_type(t)),
+                returns: instr
+                    .returns
+                    .as_ref()
+                    .map(|t| self.solana_type_to_idl_type(t)),
             });
         }
 
@@ -98,7 +111,9 @@ impl IdlGenerator {
         let mut accounts = Vec::new();
 
         // Main state account
-        let state_fields: Vec<IdlField> = ir.state.fields
+        let state_fields: Vec<IdlField> = ir
+            .state
+            .fields
             .iter()
             .map(|f| IdlField {
                 name: to_camel_case_lower(&f.name),
@@ -136,7 +151,8 @@ impl IdlGenerator {
 
         // Structs
         for s in &ir.structs {
-            let fields: Vec<IdlField> = s.fields
+            let fields: Vec<IdlField> = s
+                .fields
                 .iter()
                 .map(|f| IdlField {
                     name: to_camel_case_lower(&f.name),
@@ -152,11 +168,10 @@ impl IdlGenerator {
 
         // Enums
         for e in &ir.enums {
-            let variants: Vec<IdlEnumVariant> = e.variants
+            let variants: Vec<IdlEnumVariant> = e
+                .variants
                 .iter()
-                .map(|v| IdlEnumVariant {
-                    name: v.clone(),
-                })
+                .map(|v| IdlEnumVariant { name: v.clone() })
                 .collect();
 
             types.push(IdlTypeDef {
@@ -172,7 +187,8 @@ impl IdlGenerator {
         let mut events = Vec::new();
 
         for event in &ir.events {
-            let fields: Vec<IdlEventField> = event.fields
+            let fields: Vec<IdlEventField> = event
+                .fields
                 .iter()
                 .map(|f| IdlEventField {
                     name: to_camel_case_lower(&f.name),
@@ -348,15 +364,9 @@ struct IdlError {
 enum IdlType {
     Primitive(String),
     Defined(String),
-    Array {
-        array: (Box<IdlType>, usize),
-    },
-    Vec {
-        vec: Box<IdlType>,
-    },
-    Option {
-        option: Box<IdlType>,
-    },
+    Array { array: (Box<IdlType>, usize) },
+    Vec { vec: Box<IdlType> },
+    Option { option: Box<IdlType> },
 }
 
 // Helper functions

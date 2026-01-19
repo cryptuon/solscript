@@ -1,7 +1,7 @@
 //! Diagnostics generation for the language server
 
-use tower_lsp::lsp_types::*;
 use crate::Document;
+use tower_lsp::lsp_types::*;
 
 /// Get diagnostics for a document
 pub fn get_diagnostics(doc: &Document) -> Vec<Diagnostic> {

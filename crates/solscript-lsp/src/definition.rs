@@ -1,7 +1,7 @@
 //! Go-to-definition for the language server
 
-use tower_lsp::lsp_types::*;
 use crate::Document;
+use tower_lsp::lsp_types::*;
 
 /// Get definition location for a symbol
 pub fn get_definition(doc: &Document, position: Position, uri: &Url) -> Option<Location> {

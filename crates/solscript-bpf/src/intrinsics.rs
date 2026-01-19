@@ -89,7 +89,12 @@ impl<'ctx> Intrinsics<'ctx> {
         let void_type = self.context.void_type();
 
         let fn_type = void_type.fn_type(
-            &[ptr_type.into(), i64_type.into(), i64_type.into(), i64_type.into()],
+            &[
+                ptr_type.into(),
+                i64_type.into(),
+                i64_type.into(),
+                i64_type.into(),
+            ],
             false,
         );
         module.add_function("sol_panic_", fn_type, None);
@@ -101,10 +106,8 @@ impl<'ctx> Intrinsics<'ctx> {
         let i64_type = self.context.i64_type();
         let void_type = self.context.void_type();
 
-        let fn_type = void_type.fn_type(
-            &[ptr_type.into(), ptr_type.into(), i64_type.into()],
-            false,
-        );
+        let fn_type =
+            void_type.fn_type(&[ptr_type.into(), ptr_type.into(), i64_type.into()], false);
         module.add_function("sol_memcpy_", fn_type, None);
     }
 
@@ -115,10 +118,7 @@ impl<'ctx> Intrinsics<'ctx> {
         let i8_type = self.context.i8_type();
         let void_type = self.context.void_type();
 
-        let fn_type = void_type.fn_type(
-            &[ptr_type.into(), i8_type.into(), i64_type.into()],
-            false,
-        );
+        let fn_type = void_type.fn_type(&[ptr_type.into(), i8_type.into(), i64_type.into()], false);
         module.add_function("sol_memset_", fn_type, None);
     }
 
@@ -203,10 +203,8 @@ impl<'ctx> Intrinsics<'ctx> {
         let i64_type = self.context.i64_type();
         let void_type = self.context.void_type();
 
-        let fn_type = void_type.fn_type(
-            &[ptr_type.into(), ptr_type.into(), i64_type.into()],
-            false,
-        );
+        let fn_type =
+            void_type.fn_type(&[ptr_type.into(), ptr_type.into(), i64_type.into()], false);
         module.add_function("sol_memmove_", fn_type, None);
     }
 
@@ -217,7 +215,12 @@ impl<'ctx> Intrinsics<'ctx> {
         let i32_type = self.context.i32_type();
 
         let fn_type = i32_type.fn_type(
-            &[ptr_type.into(), ptr_type.into(), i64_type.into(), ptr_type.into()],
+            &[
+                ptr_type.into(),
+                ptr_type.into(),
+                i64_type.into(),
+                ptr_type.into(),
+            ],
             false,
         );
         module.add_function("sol_memcmp_", fn_type, None);

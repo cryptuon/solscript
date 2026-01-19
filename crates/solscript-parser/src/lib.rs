@@ -13,7 +13,7 @@ pub use parser::*;
 use pest_derive::Parser;
 
 #[derive(Parser)]
-#[grammar = "../../../grammar/solscript.pest"]
+#[grammar = "solscript.pest"]
 pub struct SolScriptParser;
 
 /// Parse SolScript source code into an AST
@@ -448,8 +448,16 @@ mod tests {
         };
 
         // Verify we have 2 events and 2 errors in the contract
-        let events: Vec<_> = contract.members.iter().filter(|m| matches!(m, solscript_ast::ContractMember::Event(_))).collect();
-        let errors: Vec<_> = contract.members.iter().filter(|m| matches!(m, solscript_ast::ContractMember::Error(_))).collect();
+        let events: Vec<_> = contract
+            .members
+            .iter()
+            .filter(|m| matches!(m, solscript_ast::ContractMember::Event(_)))
+            .collect();
+        let errors: Vec<_> = contract
+            .members
+            .iter()
+            .filter(|m| matches!(m, solscript_ast::ContractMember::Error(_)))
+            .collect();
         assert_eq!(events.len(), 2, "Expected 2 events");
         assert_eq!(errors.len(), 2, "Expected 2 errors");
     }
@@ -493,26 +501,40 @@ mod tests {
         assert_eq!(base.name.name.as_str(), "Base");
 
         // Check that abstract function has no body
-        let get_value_fn = base.members.iter().find_map(|m| {
-            if let solscript_ast::ContractMember::Function(f) = m {
-                if f.name.name.as_str() == "getValue" {
-                    return Some(f);
+        let get_value_fn = base
+            .members
+            .iter()
+            .find_map(|m| {
+                if let solscript_ast::ContractMember::Function(f) = m {
+                    if f.name.name.as_str() == "getValue" {
+                        return Some(f);
+                    }
                 }
-            }
-            None
-        }).expect("Should have getValue function");
-        assert!(get_value_fn.body.is_none(), "Abstract function should have no body");
+                None
+            })
+            .expect("Should have getValue function");
+        assert!(
+            get_value_fn.body.is_none(),
+            "Abstract function should have no body"
+        );
 
         // Check that implemented function has a body
-        let set_value_fn = base.members.iter().find_map(|m| {
-            if let solscript_ast::ContractMember::Function(f) = m {
-                if f.name.name.as_str() == "setValue" {
-                    return Some(f);
+        let set_value_fn = base
+            .members
+            .iter()
+            .find_map(|m| {
+                if let solscript_ast::ContractMember::Function(f) = m {
+                    if f.name.name.as_str() == "setValue" {
+                        return Some(f);
+                    }
                 }
-            }
-            None
-        }).expect("Should have setValue function");
-        assert!(set_value_fn.body.is_some(), "Implemented function should have body");
+                None
+            })
+            .expect("Should have setValue function");
+        assert!(
+            set_value_fn.body.is_some(),
+            "Implemented function should have body"
+        );
 
         // Second contract should not be abstract
         let derived = match &program.items[1] {
@@ -544,19 +566,29 @@ mod tests {
         };
 
         // Find the destroy function
-        let destroy_fn = contract.members.iter().find_map(|m| {
-            if let solscript_ast::ContractMember::Function(f) = m {
-                if f.name.name.as_str() == "destroy" {
-                    return Some(f);
+        let destroy_fn = contract
+            .members
+            .iter()
+            .find_map(|m| {
+                if let solscript_ast::ContractMember::Function(f) = m {
+                    if f.name.name.as_str() == "destroy" {
+                        return Some(f);
+                    }
                 }
-            }
-            None
-        }).expect("Should have destroy function");
+                None
+            })
+            .expect("Should have destroy function");
 
         // Check that body contains a selfdestruct statement
-        let body = destroy_fn.body.as_ref().expect("destroy should have a body");
+        let body = destroy_fn
+            .body
+            .as_ref()
+            .expect("destroy should have a body");
         assert_eq!(body.stmts.len(), 1);
-        assert!(matches!(body.stmts[0], solscript_ast::Stmt::Selfdestruct(_)));
+        assert!(matches!(
+            body.stmts[0],
+            solscript_ast::Stmt::Selfdestruct(_)
+        ));
     }
 
     #[test]
@@ -600,16 +632,23 @@ mod tests {
         assert_eq!(contract.name.name.as_str(), "TokenUser");
 
         // Find the doTransfer function and verify it has a method call expression
-        let do_transfer_fn = contract.members.iter().find_map(|m| {
-            if let solscript_ast::ContractMember::Function(f) = m {
-                if f.name.name.as_str() == "doTransfer" {
-                    return Some(f);
+        let do_transfer_fn = contract
+            .members
+            .iter()
+            .find_map(|m| {
+                if let solscript_ast::ContractMember::Function(f) = m {
+                    if f.name.name.as_str() == "doTransfer" {
+                        return Some(f);
+                    }
                 }
-            }
-            None
-        }).expect("Should have doTransfer function");
+                None
+            })
+            .expect("Should have doTransfer function");
 
-        let body = do_transfer_fn.body.as_ref().expect("doTransfer should have a body");
+        let body = do_transfer_fn
+            .body
+            .as_ref()
+            .expect("doTransfer should have a body");
         assert_eq!(body.stmts.len(), 1);
 
         // The statement should be an expression statement with a method call

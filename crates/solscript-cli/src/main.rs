@@ -9,10 +9,10 @@ mod templates;
 use clap::{Parser, Subcommand};
 use miette::{IntoDiagnostic, Result, WrapErr};
 use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode};
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::Duration;
-use std::fs;
 
 #[derive(Parser)]
 #[command(name = "solscript")]
@@ -217,36 +217,67 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init { name, minimal } => init_project(&name, minimal),
-        Commands::New { name, template, list } => new_project(name, &template, list),
+        Commands::New {
+            name,
+            template,
+            list,
+        } => new_project(name, &template, list),
         Commands::Check { file } => check_file(&file),
         Commands::Parse { file, format } => parse_file(&file, &format),
         Commands::Build { file, output } => build_project(&file, &output),
         Commands::Codegen { file } => codegen_file(&file),
         Commands::Fmt { files, check } => format_files(&files, check),
-        Commands::Watch { file, output, include, check_only } => {
-            watch_project(&file, &output, &include, check_only)
-        }
-        Commands::Test { file, output, filter, verbose } => {
-            run_tests(&file, &output, filter.as_deref(), verbose)
-        }
-        Commands::Deploy { path, cluster, keypair, yes } => {
-            deploy_program(&path, &cluster, keypair.as_deref(), yes)
-        }
-        Commands::Add { name, version, github, git, tag, branch, path } => {
-            add_dependency(&name, version.as_deref(), github.as_deref(), git.as_deref(), tag.as_deref(), branch.as_deref(), path.as_deref())
-        }
+        Commands::Watch {
+            file,
+            output,
+            include,
+            check_only,
+        } => watch_project(&file, &output, &include, check_only),
+        Commands::Test {
+            file,
+            output,
+            filter,
+            verbose,
+        } => run_tests(&file, &output, filter.as_deref(), verbose),
+        Commands::Deploy {
+            path,
+            cluster,
+            keypair,
+            yes,
+        } => deploy_program(&path, &cluster, keypair.as_deref(), yes),
+        Commands::Add {
+            name,
+            version,
+            github,
+            git,
+            tag,
+            branch,
+            path,
+        } => add_dependency(
+            &name,
+            version.as_deref(),
+            github.as_deref(),
+            git.as_deref(),
+            tag.as_deref(),
+            branch.as_deref(),
+            path.as_deref(),
+        ),
         Commands::Remove { name } => remove_dependency(&name),
         Commands::Install => install_dependencies(),
         Commands::Update => update_dependencies(),
         Commands::List => list_dependencies(),
-        Commands::BuildBpf { file, output, opt_level, keep_intermediate, llvm } => {
-            build_bpf(&file, &output, opt_level, keep_intermediate, llvm)
-        }
+        Commands::BuildBpf {
+            file,
+            output,
+            opt_level,
+            keep_intermediate,
+            llvm,
+        } => build_bpf(&file, &output, opt_level, keep_intermediate, llvm),
         Commands::Doctor => check_doctor(),
     }
 }
 
-fn check_file(path: &PathBuf) -> Result<()> {
+fn check_file(path: &Path) -> Result<()> {
     let source = std::fs::read_to_string(path)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to read file: {}", path.display()))?;
@@ -268,7 +299,7 @@ fn check_file(path: &PathBuf) -> Result<()> {
     }
 }
 
-fn parse_file(path: &PathBuf, format: &str) -> Result<()> {
+fn parse_file(path: &Path, format: &str) -> Result<()> {
     let source = std::fs::read_to_string(path)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to read file: {}", path.display()))?;
@@ -282,7 +313,7 @@ fn parse_file(path: &PathBuf, format: &str) -> Result<()> {
                         .wrap_err("Failed to serialize AST to JSON")?;
                     println!("{}", json);
                 }
-                "debug" | _ => {
+                _ => {
                     println!("{:#?}", program);
                 }
             }
@@ -295,16 +326,20 @@ fn parse_file(path: &PathBuf, format: &str) -> Result<()> {
     }
 }
 
-fn build_project(file: &PathBuf, output: &PathBuf) -> Result<()> {
+fn build_project(file: &Path, output: &Path) -> Result<()> {
     let source = std::fs::read_to_string(file)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to read file: {}", file.display()))?;
 
     // Parse
-    let program = solscript_parser::parse(&source)
-        .map_err(|e| miette::miette!("Parse error: {:?}", e))?;
+    let program =
+        solscript_parser::parse(&source).map_err(|e| miette::miette!("Parse error: {:?}", e))?;
 
-    println!("✓ Parsed {} ({} items)", file.display(), program.items.len());
+    println!(
+        "✓ Parsed {} ({} items)",
+        file.display(),
+        program.items.len()
+    );
 
     // Type check
     if let Err(errors) = solscript_typeck::typecheck(&program, &source) {
@@ -323,7 +358,8 @@ fn build_project(file: &PathBuf, output: &PathBuf) -> Result<()> {
         .map_err(|e| miette::miette!("Codegen error: {:?}", e))?;
 
     // Write to output directory
-    generated.write_to_dir(output)
+    generated
+        .write_to_dir(output)
         .into_diagnostic()
         .wrap_err("Failed to write generated project")?;
 
@@ -339,14 +375,14 @@ fn build_project(file: &PathBuf, output: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn codegen_file(file: &PathBuf) -> Result<()> {
+fn codegen_file(file: &Path) -> Result<()> {
     let source = std::fs::read_to_string(file)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to read file: {}", file.display()))?;
 
     // Parse
-    let program = solscript_parser::parse(&source)
-        .map_err(|e| miette::miette!("Parse error: {:?}", e))?;
+    let program =
+        solscript_parser::parse(&source).map_err(|e| miette::miette!("Parse error: {:?}", e))?;
 
     // Type check
     if let Err(errors) = solscript_typeck::typecheck(&program, &source) {
@@ -381,12 +417,7 @@ fn codegen_file(file: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn watch_project(
-    file: &PathBuf,
-    output: &PathBuf,
-    include: &[PathBuf],
-    check_only: bool,
-) -> Result<()> {
+fn watch_project(file: &Path, output: &Path, include: &[PathBuf], check_only: bool) -> Result<()> {
     println!("Starting watch mode...");
     println!("Watching: {}", file.display());
     if !include.is_empty() {
@@ -436,12 +467,9 @@ fn watch_project(
         match rx.recv() {
             Ok(Ok(events)) => {
                 // Filter for .sol files only
-                let sol_changed = events.iter().any(|e| {
-                    e.path
-                        .extension()
-                        .map(|ext| ext == "sol")
-                        .unwrap_or(false)
-                });
+                let sol_changed = events
+                    .iter()
+                    .any(|e| e.path.extension().map(|ext| ext == "sol").unwrap_or(false));
 
                 if sol_changed {
                     // Clear screen for better readability
@@ -466,7 +494,7 @@ fn watch_project(
     Ok(())
 }
 
-fn do_build(file: &PathBuf, output: &PathBuf, check_only: bool) -> Result<()> {
+fn do_build(file: &Path, output: &Path, check_only: bool) -> Result<()> {
     let source = match std::fs::read_to_string(file) {
         Ok(s) => s,
         Err(e) => {
@@ -523,12 +551,7 @@ fn do_build(file: &PathBuf, output: &PathBuf, check_only: bool) -> Result<()> {
     Ok(())
 }
 
-fn run_tests(
-    file: &PathBuf,
-    output: &PathBuf,
-    filter: Option<&str>,
-    verbose: bool,
-) -> Result<()> {
+fn run_tests(file: &Path, output: &Path, filter: Option<&str>, verbose: bool) -> Result<()> {
     use std::process::Command;
 
     println!("Running SolScript tests...\n");
@@ -539,8 +562,8 @@ fn run_tests(
         .wrap_err_with(|| format!("Failed to read file: {}", file.display()))?;
 
     // Parse
-    let program = solscript_parser::parse(&source)
-        .map_err(|e| miette::miette!("Parse error: {:?}", e))?;
+    let program =
+        solscript_parser::parse(&source).map_err(|e| miette::miette!("Parse error: {:?}", e))?;
 
     // Type check
     if let Err(errors) = solscript_typeck::typecheck(&program, &source) {
@@ -561,7 +584,8 @@ fn run_tests(
     }
 
     // Write to output directory
-    generated.write_to_dir(output)
+    generated
+        .write_to_dir(output)
         .into_diagnostic()
         .wrap_err("Failed to write output")?;
 
@@ -587,7 +611,8 @@ fn run_tests(
     println!("Running: cargo test in {}", program_dir.display());
     println!();
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .into_diagnostic()
         .wrap_err("Failed to run cargo test")?;
 
@@ -601,13 +626,13 @@ fn run_tests(
 }
 
 fn deploy_program(
-    path: &PathBuf,
+    path: &Path,
     cluster: &str,
     keypair: Option<&std::path::Path>,
     skip_confirm: bool,
 ) -> Result<()> {
-    use std::process::Command;
     use std::io::{self, Write};
+    use std::process::Command;
 
     // Determine if path is a source file or output directory
     let output_dir = if path.extension().map(|e| e == "sol").unwrap_or(false) {
@@ -633,14 +658,15 @@ fn deploy_program(
             .map_err(|e| miette::miette!("Codegen error: {:?}", e))?;
 
         let output = PathBuf::from("output");
-        generated.write_to_dir(&output)
+        generated
+            .write_to_dir(&output)
             .into_diagnostic()
             .wrap_err("Failed to write output")?;
 
         println!("✓ Generated Anchor project\n");
         output
     } else {
-        path.clone()
+        path.to_path_buf()
     };
 
     // Validate cluster
@@ -694,9 +720,7 @@ fn deploy_program(
         .arg(cluster);
 
     if let Some(kp) = keypair {
-        deploy_cmd
-            .arg("--provider.wallet")
-            .arg(kp);
+        deploy_cmd.arg("--provider.wallet").arg(kp);
     }
 
     deploy_cmd.current_dir(&output_dir);
@@ -727,7 +751,9 @@ fn new_project(name: Option<String>, template_id: &str, list_only: bool) -> Resu
 
     // Name is required if not listing
     let name = name.ok_or_else(|| {
-        miette::miette!("Project name is required. Usage: solscript new <name> [--template <template>]")
+        miette::miette!(
+            "Project name is required. Usage: solscript new <name> [--template <template>]"
+        )
     })?;
 
     // Look up the template
@@ -759,10 +785,7 @@ fn list_templates() -> Result<()> {
 
         println!(
             "  {} ({}) - {}{}",
-            template.metadata.id,
-            difficulty,
-            template.metadata.description,
-            default_marker
+            template.metadata.id, difficulty, template.metadata.description, default_marker
         );
         println!("    Features: {}", template.metadata.features.join(", "));
         println!();
@@ -885,7 +908,9 @@ fn to_pascal_case(s: &str) -> String {
 
 fn format_files(files: &[PathBuf], check_only: bool) -> Result<()> {
     if files.is_empty() {
-        return Err(miette::miette!("No files specified. Usage: solscript fmt <FILE>..."));
+        return Err(miette::miette!(
+            "No files specified. Usage: solscript fmt <FILE>..."
+        ));
     }
 
     let mut any_changes = false;
@@ -925,14 +950,14 @@ fn format_files(files: &[PathBuf], check_only: bool) -> Result<()> {
     Ok(())
 }
 
-fn format_single_file(path: &PathBuf, check_only: bool) -> Result<bool> {
+fn format_single_file(path: &Path, check_only: bool) -> Result<bool> {
     let source = fs::read_to_string(path)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to read file: {}", path.display()))?;
 
     // Parse the file to ensure it's valid
-    let program = solscript_parser::parse(&source)
-        .map_err(|e| miette::miette!("Parse error: {:?}", e))?;
+    let program =
+        solscript_parser::parse(&source).map_err(|e| miette::miette!("Parse error: {:?}", e))?;
 
     // Format the AST back to source code
     let formatted = format_program(&program);
@@ -967,7 +992,7 @@ fn format_program(program: &solscript_ast::Program) -> String {
 
     for (i, item) in program.items.iter().enumerate() {
         if i > 0 {
-            output.push_str("\n");
+            output.push('\n');
         }
         output.push_str(&format_item(item));
     }
@@ -1059,7 +1084,7 @@ fn format_function(f: &solscript_ast::FnDef, indent: usize) -> String {
         .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
         .collect();
     output.push_str(&params.join(", "));
-    output.push_str(")");
+    output.push(')');
 
     // Visibility
     if let Some(vis) = &f.visibility {
@@ -1082,13 +1107,9 @@ fn format_function(f: &solscript_ast::FnDef, indent: usize) -> String {
     // Return type
     if !f.return_params.is_empty() {
         output.push_str(" returns (");
-        let returns: Vec<String> = f
-            .return_params
-            .iter()
-            .map(|p| format_type(&p.ty))
-            .collect();
+        let returns: Vec<String> = f.return_params.iter().map(|p| format_type(&p.ty)).collect();
         output.push_str(&returns.join(", "));
-        output.push_str(")");
+        output.push(')');
     }
 
     // Body
@@ -1100,7 +1121,7 @@ fn format_function(f: &solscript_ast::FnDef, indent: usize) -> String {
         output.push_str(";\n");
     }
 
-    output.push_str("\n");
+    output.push('\n');
     output
 }
 
@@ -1123,7 +1144,7 @@ fn format_constructor(c: &solscript_ast::ConstructorDef) -> String {
 fn format_modifier(m: &solscript_ast::ModifierDef) -> String {
     let mut output = String::from("    modifier ");
     output.push_str(&m.name.name.to_string());
-    output.push_str("(");
+    output.push('(');
 
     let params: Vec<String> = m
         .params
@@ -1153,7 +1174,7 @@ fn format_interface(i: &solscript_ast::InterfaceDef) -> String {
     for sig in &i.members {
         output.push_str("    function ");
         output.push_str(&sig.name.name.to_string());
-        output.push_str("(");
+        output.push('(');
 
         let params: Vec<String> = sig
             .params
@@ -1161,7 +1182,7 @@ fn format_interface(i: &solscript_ast::InterfaceDef) -> String {
             .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
             .collect();
         output.push_str(&params.join(", "));
-        output.push_str(")");
+        output.push(')');
 
         if let Some(vis) = &sig.visibility {
             output.push_str(&format!(" {}", format_visibility(vis)));
@@ -1179,7 +1200,7 @@ fn format_interface(i: &solscript_ast::InterfaceDef) -> String {
                 .map(|p| format_type(&p.ty))
                 .collect();
             output.push_str(&returns.join(", "));
-            output.push_str(")");
+            output.push(')');
         }
 
         output.push_str(";\n");
@@ -1193,7 +1214,11 @@ fn format_struct(s: &solscript_ast::StructDef) -> String {
     let mut output = format!("struct {} {{\n", s.name.name);
 
     for field in &s.fields {
-        output.push_str(&format!("    {} {};\n", format_type(&field.ty), field.name.name));
+        output.push_str(&format!(
+            "    {} {};\n",
+            format_type(&field.ty),
+            field.name.name
+        ));
     }
 
     output.push_str("}\n");
@@ -1206,9 +1231,9 @@ fn format_enum(e: &solscript_ast::EnumDef) -> String {
     for (i, variant) in e.variants.iter().enumerate() {
         output.push_str(&format!("    {}", variant.name.name));
         if i < e.variants.len() - 1 {
-            output.push_str(",");
+            output.push(',');
         }
-        output.push_str("\n");
+        output.push('\n');
     }
 
     output.push_str("}\n");
@@ -1235,7 +1260,7 @@ fn format_event_inline(e: &solscript_ast::EventDef) -> String {
         })
         .collect();
     output.push_str(&params.join(", "));
-    output.push_str(")");
+    output.push(')');
 
     output
 }
@@ -1253,7 +1278,7 @@ fn format_error_inline(e: &solscript_ast::ErrorDef) -> String {
         .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
         .collect();
     output.push_str(&params.join(", "));
-    output.push_str(")");
+    output.push(')');
 
     output
 }
@@ -1261,7 +1286,11 @@ fn format_error_inline(e: &solscript_ast::ErrorDef) -> String {
 fn format_import(i: &solscript_ast::ImportStmt) -> String {
     let mut output = String::from("import { ");
 
-    let items: Vec<String> = i.items.iter().map(|item| item.name.name.to_string()).collect();
+    let items: Vec<String> = i
+        .items
+        .iter()
+        .map(|item| item.name.name.to_string())
+        .collect();
     output.push_str(&items.join(", "));
 
     output.push_str(&format!(" }} from \"{}\";\n", i.source));
@@ -1287,7 +1316,11 @@ fn format_type(ty: &solscript_ast::TypeExpr) -> String {
             }
         }
         TypeExpr::Mapping(m) => {
-            format!("mapping({} => {})", format_type(&m.key), format_type(&m.value))
+            format!(
+                "mapping({} => {})",
+                format_type(&m.key),
+                format_type(&m.value)
+            )
         }
         TypeExpr::Tuple(t) => {
             let types: Vec<String> = t.elements.iter().map(format_type).collect();
@@ -1345,16 +1378,7 @@ fn add_dependency(
 
     println!("Adding {} to dependencies...", name);
 
-    package::add_package(
-        &config_path,
-        name,
-        version,
-        github,
-        git,
-        tag,
-        branch,
-        path,
-    )?;
+    package::add_package(&config_path, name, version, github, git, tag, branch, path)?;
 
     println!("✓ Added {} to solscript.toml", name);
     println!("✓ Package installed");
@@ -1457,7 +1481,13 @@ fn list_dependencies() -> Result<()> {
 // BPF Compilation Commands
 // =============================================================================
 
-fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate: bool, use_llvm: bool) -> Result<()> {
+fn build_bpf(
+    file: &Path,
+    output: &Path,
+    opt_level: u8,
+    keep_intermediate: bool,
+    use_llvm: bool,
+) -> Result<()> {
     if use_llvm {
         println!("Compiling {} to BPF using LLVM...\n", file.display());
     } else {
@@ -1469,16 +1499,20 @@ fn build_bpf(file: &PathBuf, output: &PathBuf, opt_level: u8, keep_intermediate:
         .wrap_err_with(|| format!("Failed to read file: {}", file.display()))?;
 
     // Parse
-    let program = solscript_parser::parse(&source)
-        .map_err(|e| miette::miette!("Parse error: {:?}", e))?;
+    let program =
+        solscript_parser::parse(&source).map_err(|e| miette::miette!("Parse error: {:?}", e))?;
 
-    println!("✓ Parsed {} ({} items)", file.display(), program.items.len());
+    println!(
+        "✓ Parsed {} ({} items)",
+        file.display(),
+        program.items.len()
+    );
 
     // Configure compilation options
     let options = solscript_bpf::CompileOptions {
         opt_level,
         debug_info: false,
-        output_dir: output.clone(),
+        output_dir: output.to_path_buf(),
         use_cargo_sbf: !use_llvm, // Use direct LLVM if --llvm flag is passed
         keep_intermediate,
     };

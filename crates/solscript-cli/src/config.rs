@@ -80,7 +80,7 @@ pub enum Dependency {
     Detailed(DependencySpec),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DependencySpec {
     /// Version requirement (semver)
     #[serde(default)]
@@ -129,10 +129,10 @@ impl Dependency {
             Dependency::Detailed(spec) => {
                 if let Some(url) = &spec.git {
                     Some(url.clone())
-                } else if let Some(repo) = &spec.github {
-                    Some(format!("https://github.com/{}.git", repo))
                 } else {
-                    None
+                    spec.github
+                        .as_ref()
+                        .map(|repo| format!("https://github.com/{}.git", repo))
                 }
             }
         }
@@ -142,12 +142,11 @@ impl Dependency {
     pub fn git_ref(&self) -> Option<String> {
         match self {
             Dependency::Version(_) => None,
-            Dependency::Detailed(spec) => {
-                spec.tag
-                    .clone()
-                    .or_else(|| spec.branch.clone())
-                    .or_else(|| spec.rev.clone())
-            }
+            Dependency::Detailed(spec) => spec
+                .tag
+                .clone()
+                .or_else(|| spec.branch.clone())
+                .or_else(|| spec.rev.clone()),
         }
     }
 

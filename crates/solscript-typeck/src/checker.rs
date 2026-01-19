@@ -93,34 +93,41 @@ impl TypeChecker {
         match item {
             ast::Item::Struct(s) => {
                 let def = self.build_struct_def(s);
-                self.symbols.define_type(s.name.name.clone(), TypeDef::Struct(def));
+                self.symbols
+                    .define_type(s.name.name.clone(), TypeDef::Struct(def));
             }
             ast::Item::Enum(e) => {
                 let def = self.build_enum_def(e);
-                self.symbols.define_type(e.name.name.clone(), TypeDef::Enum(def));
+                self.symbols
+                    .define_type(e.name.name.clone(), TypeDef::Enum(def));
             }
             ast::Item::Contract(c) => {
                 let def = self.build_contract_def(c);
-                self.symbols.define_type(c.name.name.clone(), TypeDef::Contract(def));
+                self.symbols
+                    .define_type(c.name.name.clone(), TypeDef::Contract(def));
 
                 // Also register events, errors, structs, and enums defined inside the contract
                 for member in &c.members {
                     match member {
                         ast::ContractMember::Event(e) => {
                             let event_def = self.build_event_def(e);
-                            self.symbols.define_type(e.name.name.clone(), TypeDef::Event(event_def));
+                            self.symbols
+                                .define_type(e.name.name.clone(), TypeDef::Event(event_def));
                         }
                         ast::ContractMember::Error(e) => {
                             let error_def = self.build_error_def(e);
-                            self.symbols.define_type(e.name.name.clone(), TypeDef::Error(error_def));
+                            self.symbols
+                                .define_type(e.name.name.clone(), TypeDef::Error(error_def));
                         }
                         ast::ContractMember::Struct(s) => {
                             let struct_def = self.build_struct_def(s);
-                            self.symbols.define_type(s.name.name.clone(), TypeDef::Struct(struct_def));
+                            self.symbols
+                                .define_type(s.name.name.clone(), TypeDef::Struct(struct_def));
                         }
                         ast::ContractMember::Enum(e) => {
                             let enum_def = self.build_enum_def(e);
-                            self.symbols.define_type(e.name.name.clone(), TypeDef::Enum(enum_def));
+                            self.symbols
+                                .define_type(e.name.name.clone(), TypeDef::Enum(enum_def));
                         }
                         _ => {}
                     }
@@ -128,15 +135,18 @@ impl TypeChecker {
             }
             ast::Item::Interface(i) => {
                 let def = self.build_interface_def(i);
-                self.symbols.define_type(i.name.name.clone(), TypeDef::Interface(def));
+                self.symbols
+                    .define_type(i.name.name.clone(), TypeDef::Interface(def));
             }
             ast::Item::Event(e) => {
                 let def = self.build_event_def(e);
-                self.symbols.define_type(e.name.name.clone(), TypeDef::Event(def));
+                self.symbols
+                    .define_type(e.name.name.clone(), TypeDef::Event(def));
             }
             ast::Item::Error(e) => {
                 let def = self.build_error_def(e);
-                self.symbols.define_type(e.name.name.clone(), TypeDef::Error(def));
+                self.symbols
+                    .define_type(e.name.name.clone(), TypeDef::Error(def));
             }
             _ => {}
         }
@@ -215,7 +225,11 @@ impl TypeChecker {
     }
 
     fn build_modifier_type(&mut self, m: &ast::ModifierDef) -> ModifierType {
-        let params: Vec<Type> = m.params.iter().map(|p| self.resolve_type_expr(&p.ty)).collect();
+        let params: Vec<Type> = m
+            .params
+            .iter()
+            .map(|p| self.resolve_type_expr(&p.ty))
+            .collect();
         ModifierType {
             name: m.name.name.clone(),
             params,
@@ -270,7 +284,11 @@ impl TypeChecker {
     }
 
     fn build_function_type(&mut self, f: &ast::FnDef) -> FunctionType {
-        let params: Vec<Type> = f.params.iter().map(|p| self.resolve_type_expr(&p.ty)).collect();
+        let params: Vec<Type> = f
+            .params
+            .iter()
+            .map(|p| self.resolve_type_expr(&p.ty))
+            .collect();
 
         // Get return type from return_params
         let return_type = if f.return_params.is_empty() {
@@ -279,7 +297,11 @@ impl TypeChecker {
             self.resolve_type_expr(&f.return_params[0].ty)
         } else {
             // Multiple return values -> tuple
-            let types: Vec<Type> = f.return_params.iter().map(|rp| self.resolve_type_expr(&rp.ty)).collect();
+            let types: Vec<Type> = f
+                .return_params
+                .iter()
+                .map(|rp| self.resolve_type_expr(&rp.ty))
+                .collect();
             Type::Tuple(types)
         };
 
@@ -290,14 +312,22 @@ impl TypeChecker {
     }
 
     fn build_fn_sig_type(&mut self, sig: &ast::FnSig) -> FunctionType {
-        let params: Vec<Type> = sig.params.iter().map(|p| self.resolve_type_expr(&p.ty)).collect();
+        let params: Vec<Type> = sig
+            .params
+            .iter()
+            .map(|p| self.resolve_type_expr(&p.ty))
+            .collect();
 
         let return_type = if sig.return_params.is_empty() {
             Type::Unit
         } else if sig.return_params.len() == 1 {
             self.resolve_type_expr(&sig.return_params[0].ty)
         } else {
-            let types: Vec<Type> = sig.return_params.iter().map(|rp| self.resolve_type_expr(&rp.ty)).collect();
+            let types: Vec<Type> = sig
+                .return_params
+                .iter()
+                .map(|rp| self.resolve_type_expr(&rp.ty))
+                .collect();
             Type::Tuple(types)
         };
 
@@ -332,7 +362,11 @@ impl TypeChecker {
                 Type::Mapping(Box::new(key), Box::new(value))
             }
             ast::TypeExpr::Tuple(tuple) => {
-                let elems: Vec<Type> = tuple.elements.iter().map(|t| self.resolve_type_expr(t)).collect();
+                let elems: Vec<Type> = tuple
+                    .elements
+                    .iter()
+                    .map(|t| self.resolve_type_expr(t))
+                    .collect();
                 Type::Tuple(elems)
             }
         }
@@ -342,7 +376,7 @@ impl TypeChecker {
         let name = path.name();
 
         // Check for primitive types
-        if let Some(prim) = PrimitiveType::from_str(name.as_str()) {
+        if let Some(prim) = PrimitiveType::parse(name.as_str()) {
             return Type::Primitive(prim);
         }
 
@@ -355,7 +389,11 @@ impl TypeChecker {
                 .unwrap_or_default();
             Type::Named(NamedType::with_args(name.clone(), type_args))
         } else {
-            self.error(TypeError::undefined_type(name, self.span(path.span), &self.source));
+            self.error(TypeError::undefined_type(
+                name,
+                self.span(path.span),
+                &self.source,
+            ));
             Type::Error
         }
     }
@@ -409,11 +447,8 @@ impl TypeChecker {
         for member in &contract.members {
             if let ast::ContractMember::Function(f) = member {
                 let fn_ty = self.build_function_type(f);
-                self.symbols.define_variable(
-                    f.name.name.clone(),
-                    Type::Function(fn_ty),
-                    false,
-                );
+                self.symbols
+                    .define_variable(f.name.name.clone(), Type::Function(fn_ty), false);
             }
         }
 
@@ -443,7 +478,10 @@ impl TypeChecker {
             if seen_fields.contains(field_name) {
                 self.error(TypeError::DuplicateDefinition {
                     name: field_name.to_string(),
-                    span: miette::SourceSpan::new(field.name.span.start.into(), (field.name.span.end - field.name.span.start).into()),
+                    span: miette::SourceSpan::new(
+                        field.name.span.start.into(),
+                        field.name.span.end - field.name.span.start,
+                    ),
                     src: self.source.clone(),
                 });
             } else {
@@ -463,7 +501,10 @@ impl TypeChecker {
             if seen_variants.contains(variant_name) {
                 self.error(TypeError::DuplicateDefinition {
                     name: variant_name.to_string(),
-                    span: miette::SourceSpan::new(variant.name.span.start.into(), (variant.name.span.end - variant.name.span.start).into()),
+                    span: miette::SourceSpan::new(
+                        variant.name.span.start.into(),
+                        variant.name.span.end - variant.name.span.start,
+                    ),
                     src: self.source.clone(),
                 });
             } else {
@@ -486,7 +527,8 @@ impl TypeChecker {
         // Add parameters to scope
         for param in &f.params {
             let ty = self.resolve_type_expr(&param.ty);
-            self.symbols.define_variable(param.name.name.clone(), ty, false);
+            self.symbols
+                .define_variable(param.name.name.clone(), ty, false);
         }
 
         // Check function body (if present - abstract functions have no body)
@@ -502,22 +544,20 @@ impl TypeChecker {
         let modifier_name = &modifier.name.name;
 
         // Look up modifier in the current contract context and base contracts
-        if let Some(contract_type) = &self.self_type {
-            if let Type::Named(named) = contract_type {
-                if let Some(TypeDef::Contract(contract_def)) = self.symbols.lookup_type(&named.name) {
-                    // First try this contract
-                    if let Some(mod_type) = contract_def.modifiers.get(modifier_name).cloned() {
-                        self.validate_modifier_args(modifier, &mod_type);
-                        return;
-                    }
+        if let Some(Type::Named(named)) = &self.self_type {
+            if let Some(TypeDef::Contract(contract_def)) = self.symbols.lookup_type(&named.name) {
+                // First try this contract
+                if let Some(mod_type) = contract_def.modifiers.get(modifier_name).cloned() {
+                    self.validate_modifier_args(modifier, &mod_type);
+                    return;
+                }
 
-                    // Then try base contracts
-                    for base_name in &contract_def.bases {
-                        if let Some(TypeDef::Contract(base_def)) = self.symbols.lookup_type(base_name) {
-                            if let Some(mod_type) = base_def.modifiers.get(modifier_name).cloned() {
-                                self.validate_modifier_args(modifier, &mod_type);
-                                return;
-                            }
+                // Then try base contracts
+                for base_name in &contract_def.bases {
+                    if let Some(TypeDef::Contract(base_def)) = self.symbols.lookup_type(base_name) {
+                        if let Some(mod_type) = base_def.modifiers.get(modifier_name).cloned() {
+                            self.validate_modifier_args(modifier, &mod_type);
+                            return;
                         }
                     }
                 }
@@ -527,12 +567,19 @@ impl TypeChecker {
         // Modifier not found
         self.error(TypeError::UndefinedModifier {
             name: modifier_name.to_string(),
-            span: miette::SourceSpan::new(modifier.name.span.start.into(), (modifier.name.span.end - modifier.name.span.start).into()),
+            span: miette::SourceSpan::new(
+                modifier.name.span.start.into(),
+                modifier.name.span.end - modifier.name.span.start,
+            ),
             src: self.source.clone(),
         });
     }
 
-    fn validate_modifier_args(&mut self, modifier: &ast::ModifierInvocation, mod_type: &ModifierType) {
+    fn validate_modifier_args(
+        &mut self,
+        modifier: &ast::ModifierInvocation,
+        mod_type: &ModifierType,
+    ) {
         // Check argument count
         if modifier.args.len() != mod_type.params.len() {
             self.error(TypeError::wrong_arg_count(
@@ -566,7 +613,8 @@ impl TypeChecker {
         // Add parameters to scope
         for param in &c.params {
             let ty = self.resolve_type_expr(&param.ty);
-            self.symbols.define_variable(param.name.name.clone(), ty, false);
+            self.symbols
+                .define_variable(param.name.name.clone(), ty, false);
         }
 
         // Check constructor body
@@ -584,7 +632,8 @@ impl TypeChecker {
         // Add parameters to scope
         for param in &m.params {
             let ty = self.resolve_type_expr(&param.ty);
-            self.symbols.define_variable(param.name.name.clone(), ty, false);
+            self.symbols
+                .define_variable(param.name.name.clone(), ty, false);
         }
 
         // Check modifier body
@@ -658,7 +707,8 @@ impl TypeChecker {
         }
 
         // Add variable to scope
-        self.symbols.define_variable(v.name.name.clone(), declared_ty, true);
+        self.symbols
+            .define_variable(v.name.name.clone(), declared_ty, true);
     }
 
     fn check_return_stmt(&mut self, r: &ast::ReturnStmt) {
@@ -756,43 +806,38 @@ impl TypeChecker {
         let event_name = &e.event.name;
 
         // Look up the event
-        if let Some(type_def) = self.symbols.lookup_type(event_name) {
-            if let TypeDef::Event(event_def) = type_def {
-                // Check argument count
-                if e.args.len() != event_def.params.len() {
-                    self.error(TypeError::wrong_arg_count(
-                        event_def.params.len(),
-                        e.args.len(),
-                        self.span(e.span),
+        if let Some(TypeDef::Event(event_def)) = self.symbols.lookup_type(event_name) {
+            // Check argument count
+            if e.args.len() != event_def.params.len() {
+                self.error(TypeError::wrong_arg_count(
+                    event_def.params.len(),
+                    e.args.len(),
+                    self.span(e.span),
+                    &self.source,
+                ));
+                return;
+            }
+
+            // Check argument types
+            let event_params = event_def.params.clone();
+            for (arg, param) in e.args.iter().zip(event_params.iter()) {
+                let arg_ty = self.check_expr(&arg.value);
+                if !self.types_compatible(&param.ty, &arg_ty) {
+                    self.error(TypeError::type_mismatch(
+                        &param.ty,
+                        &arg_ty,
+                        self.span(arg.value.span()),
                         &self.source,
                     ));
-                    return;
                 }
-
-                // Check argument types
-                let event_params = event_def.params.clone();
-                for (arg, param) in e.args.iter().zip(event_params.iter()) {
-                    let arg_ty = self.check_expr(&arg.value);
-                    if !self.types_compatible(&param.ty, &arg_ty) {
-                        self.error(TypeError::type_mismatch(
-                            &param.ty,
-                            &arg_ty,
-                            self.span(arg.value.span()),
-                            &self.source,
-                        ));
-                    }
-                }
-            } else {
-                self.error(TypeError::UndefinedEvent {
-                    name: event_name.to_string(),
-                    span: miette::SourceSpan::new(e.event.span.start.into(), (e.event.span.end - e.event.span.start).into()),
-                    src: self.source.clone(),
-                });
             }
         } else {
             self.error(TypeError::UndefinedEvent {
                 name: event_name.to_string(),
-                span: miette::SourceSpan::new(e.event.span.start.into(), (e.event.span.end - e.event.span.start).into()),
+                span: miette::SourceSpan::new(
+                    e.event.span.start.into(),
+                    e.event.span.end - e.event.span.start,
+                ),
                 src: self.source.clone(),
             });
         }
@@ -940,8 +985,12 @@ impl TypeChecker {
 
         match bin.op {
             // Arithmetic operators
-            ast::BinaryOp::Add | ast::BinaryOp::Sub | ast::BinaryOp::Mul |
-            ast::BinaryOp::Div | ast::BinaryOp::Rem | ast::BinaryOp::Exp => {
+            ast::BinaryOp::Add
+            | ast::BinaryOp::Sub
+            | ast::BinaryOp::Mul
+            | ast::BinaryOp::Div
+            | ast::BinaryOp::Rem
+            | ast::BinaryOp::Exp => {
                 if left_ty.is_integer() && self.types_compatible(&left_ty, &right_ty) {
                     left_ty
                 } else {
@@ -956,8 +1005,12 @@ impl TypeChecker {
                 }
             }
             // Comparison operators
-            ast::BinaryOp::Eq | ast::BinaryOp::Ne | ast::BinaryOp::Lt |
-            ast::BinaryOp::Le | ast::BinaryOp::Gt | ast::BinaryOp::Ge => {
+            ast::BinaryOp::Eq
+            | ast::BinaryOp::Ne
+            | ast::BinaryOp::Lt
+            | ast::BinaryOp::Le
+            | ast::BinaryOp::Gt
+            | ast::BinaryOp::Ge => {
                 if self.types_compatible(&left_ty, &right_ty) {
                     Type::Primitive(PrimitiveType::Bool)
                 } else {
@@ -987,8 +1040,11 @@ impl TypeChecker {
                 }
             }
             // Bitwise operators
-            ast::BinaryOp::BitAnd | ast::BinaryOp::BitOr | ast::BinaryOp::BitXor |
-            ast::BinaryOp::Shl | ast::BinaryOp::Shr => {
+            ast::BinaryOp::BitAnd
+            | ast::BinaryOp::BitOr
+            | ast::BinaryOp::BitXor
+            | ast::BinaryOp::Shl
+            | ast::BinaryOp::Shr => {
                 if left_ty.is_integer() && right_ty.is_integer() {
                     left_ty
                 } else {
@@ -1020,7 +1076,10 @@ impl TypeChecker {
                     self.error(TypeError::InvalidUnaryOp {
                         op: "-".to_string(),
                         ty: expr_ty.to_string(),
-                        span: miette::SourceSpan::new(un.span.start.into(), (un.span.end - un.span.start).into()),
+                        span: miette::SourceSpan::new(
+                            un.span.start.into(),
+                            un.span.end - un.span.start,
+                        ),
                         src: self.source.clone(),
                     });
                     Type::Error
@@ -1033,7 +1092,10 @@ impl TypeChecker {
                     self.error(TypeError::InvalidUnaryOp {
                         op: "!".to_string(),
                         ty: expr_ty.to_string(),
-                        span: miette::SourceSpan::new(un.span.start.into(), (un.span.end - un.span.start).into()),
+                        span: miette::SourceSpan::new(
+                            un.span.start.into(),
+                            un.span.end - un.span.start,
+                        ),
                         src: self.source.clone(),
                     });
                     Type::Error
@@ -1046,21 +1108,29 @@ impl TypeChecker {
                     self.error(TypeError::InvalidUnaryOp {
                         op: "~".to_string(),
                         ty: expr_ty.to_string(),
-                        span: miette::SourceSpan::new(un.span.start.into(), (un.span.end - un.span.start).into()),
+                        span: miette::SourceSpan::new(
+                            un.span.start.into(),
+                            un.span.end - un.span.start,
+                        ),
                         src: self.source.clone(),
                     });
                     Type::Error
                 }
             }
-            ast::UnaryOp::PreInc | ast::UnaryOp::PreDec |
-            ast::UnaryOp::PostInc | ast::UnaryOp::PostDec => {
+            ast::UnaryOp::PreInc
+            | ast::UnaryOp::PreDec
+            | ast::UnaryOp::PostInc
+            | ast::UnaryOp::PostDec => {
                 if expr_ty.is_integer() {
                     expr_ty
                 } else {
                     self.error(TypeError::InvalidUnaryOp {
                         op: "++/--".to_string(),
                         ty: expr_ty.to_string(),
-                        span: miette::SourceSpan::new(un.span.start.into(), (un.span.end - un.span.start).into()),
+                        span: miette::SourceSpan::new(
+                            un.span.start.into(),
+                            un.span.end - un.span.start,
+                        ),
                         src: self.source.clone(),
                     });
                     Type::Error
@@ -1099,7 +1169,9 @@ impl TypeChecker {
                     // Optional message argument
                     if call.args.len() == 2 {
                         let msg_ty = self.check_expr(&call.args[1].value);
-                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String)) && !matches!(msg_ty, Type::Error) {
+                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String))
+                            && !matches!(msg_ty, Type::Error)
+                        {
                             self.error(TypeError::type_mismatch(
                                 &Type::Primitive(PrimitiveType::String),
                                 &msg_ty,
@@ -1134,7 +1206,9 @@ impl TypeChecker {
                     // Optional message argument
                     if call.args.len() == 3 {
                         let msg_ty = self.check_expr(&call.args[2].value);
-                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String)) && !matches!(msg_ty, Type::Error) {
+                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String))
+                            && !matches!(msg_ty, Type::Error)
+                        {
                             self.error(TypeError::type_mismatch(
                                 &Type::Primitive(PrimitiveType::String),
                                 &msg_ty,
@@ -1169,7 +1243,9 @@ impl TypeChecker {
                     // Optional message argument
                     if call.args.len() == 3 {
                         let msg_ty = self.check_expr(&call.args[2].value);
-                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String)) && !matches!(msg_ty, Type::Error) {
+                        if !matches!(msg_ty, Type::Primitive(PrimitiveType::String))
+                            && !matches!(msg_ty, Type::Error)
+                        {
                             self.error(TypeError::type_mismatch(
                                 &Type::Primitive(PrimitiveType::String),
                                 &msg_ty,
@@ -1226,7 +1302,9 @@ impl TypeChecker {
                     let to_ty = self.check_expr(&call.args[0].value);
                     let amount_ty = self.check_expr(&call.args[1].value);
                     // First arg should be an address
-                    if !matches!(to_ty, Type::Primitive(PrimitiveType::Address)) && !matches!(to_ty, Type::Error) {
+                    if !matches!(to_ty, Type::Primitive(PrimitiveType::Address))
+                        && !matches!(to_ty, Type::Error)
+                    {
                         self.error(TypeError::type_mismatch(
                             &Type::Primitive(PrimitiveType::Address),
                             &to_ty,
@@ -1266,7 +1344,7 @@ impl TypeChecker {
 
             // Handle uint256(expr), uint64(expr), etc. - type cast to integer
             // Handle bytes1(expr), bytes32(expr), etc. - type cast to fixed bytes
-            if let Some(prim) = PrimitiveType::from_str(name) {
+            if let Some(prim) = PrimitiveType::parse(name) {
                 if prim.is_integer() || prim.is_fixed_bytes() {
                     if call.args.len() != 1 {
                         self.error(TypeError::wrong_arg_count(
@@ -1296,7 +1374,9 @@ impl TypeChecker {
                 }
                 // The argument should be an address (program ID)
                 let arg_ty = self.check_expr(&call.args[0].value);
-                if !matches!(arg_ty, Type::Primitive(PrimitiveType::Address)) && !matches!(arg_ty, Type::Error) {
+                if !matches!(arg_ty, Type::Primitive(PrimitiveType::Address))
+                    && !matches!(arg_ty, Type::Error)
+                {
                     self.error(TypeError::type_mismatch(
                         &Type::Primitive(PrimitiveType::Address),
                         &arg_ty,
@@ -1342,7 +1422,11 @@ impl TypeChecker {
         } else if matches!(callee_ty, Type::Error) {
             Type::Error
         } else {
-            self.error(TypeError::not_callable(&callee_ty, self.span(call.span), &self.source));
+            self.error(TypeError::not_callable(
+                &callee_ty,
+                self.span(call.span),
+                &self.source,
+            ));
             Type::Error
         }
     }
@@ -1352,7 +1436,11 @@ impl TypeChecker {
         let method_name = mc.method.name.clone();
 
         // Check arguments
-        let arg_types: Vec<Type> = mc.args.iter().map(|arg| self.check_expr(&arg.value)).collect();
+        let arg_types: Vec<Type> = mc
+            .args
+            .iter()
+            .map(|arg| self.check_expr(&arg.value))
+            .collect();
 
         // Handle built-in object methods
         if let Type::Named(named) = &receiver_ty {
@@ -1360,28 +1448,22 @@ impl TypeChecker {
 
             // Handle msg, block, tx methods/fields
             match type_name {
-                "msg" => {
-                    match method_name.as_str() {
-                        "sender" => return Type::Primitive(PrimitiveType::Address),
-                        "value" => return Type::Primitive(PrimitiveType::Uint256),
-                        "data" => return Type::Primitive(PrimitiveType::Bytes),
-                        _ => {}
-                    }
-                }
-                "block" => {
-                    match method_name.as_str() {
-                        "timestamp" => return Type::Primitive(PrimitiveType::Uint256),
-                        "number" => return Type::Primitive(PrimitiveType::Uint256),
-                        _ => {}
-                    }
-                }
-                "tx" => {
-                    match method_name.as_str() {
-                        "origin" => return Type::Primitive(PrimitiveType::Address),
-                        "gasprice" => return Type::Primitive(PrimitiveType::Uint256),
-                        _ => {}
-                    }
-                }
+                "msg" => match method_name.as_str() {
+                    "sender" => return Type::Primitive(PrimitiveType::Address),
+                    "value" => return Type::Primitive(PrimitiveType::Uint256),
+                    "data" => return Type::Primitive(PrimitiveType::Bytes),
+                    _ => {}
+                },
+                "block" => match method_name.as_str() {
+                    "timestamp" => return Type::Primitive(PrimitiveType::Uint256),
+                    "number" => return Type::Primitive(PrimitiveType::Uint256),
+                    _ => {}
+                },
+                "tx" => match method_name.as_str() {
+                    "origin" => return Type::Primitive(PrimitiveType::Address),
+                    "gasprice" => return Type::Primitive(PrimitiveType::Uint256),
+                    _ => {}
+                },
                 "token" => {
                     // SPL Token operations: transfer(from, to, authority, amount)
                     // mint(mint, to, authority, amount), burn(from, mint, authority, amount)
@@ -1449,25 +1531,23 @@ impl TypeChecker {
                 }
                 // Solana Clock sysvar methods
                 "clock" => {
-                    match method_name.as_str() {
-                        "get" => {
-                            // clock.get() returns a Clock-like type (for now just return the type itself)
-                            return Type::Named(NamedType::new(SmolStr::from("clock")));
-                        }
-                        _ => {}
+                    if method_name.as_str() == "get" {
+                        // clock.get() returns a Clock-like type (for now just return the type itself)
+                        return Type::Named(NamedType::new(SmolStr::from("clock")));
                     }
                 }
                 _ => {}
             }
 
             // Look up the method on the named type
-            let method_info = self.symbols.lookup_type(&SmolStr::from(type_name)).and_then(|type_def| {
-                match type_def {
+            let method_info = self
+                .symbols
+                .lookup_type(&SmolStr::from(type_name))
+                .and_then(|type_def| match type_def {
                     TypeDef::Contract(c) => c.methods.get(&method_name).cloned(),
                     TypeDef::Interface(i) => i.methods.get(&method_name).cloned(),
                     _ => None,
-                }
-            });
+                });
 
             if let Some(fn_ty) = method_info {
                 // Check argument count
@@ -1482,7 +1562,8 @@ impl TypeChecker {
                 }
 
                 // Check argument types
-                for (i, (arg_ty, param_ty)) in arg_types.iter().zip(fn_ty.params.iter()).enumerate() {
+                for (i, (arg_ty, param_ty)) in arg_types.iter().zip(fn_ty.params.iter()).enumerate()
+                {
                     if !self.types_compatible(param_ty, arg_ty) {
                         self.error(TypeError::type_mismatch(
                             param_ty,
@@ -1574,47 +1655,40 @@ impl TypeChecker {
             let field_name = fa.field.name.as_str();
 
             match type_name {
-                "msg" => {
-                    match field_name {
-                        "sender" => return Type::Primitive(PrimitiveType::Address),
-                        "value" => return Type::Primitive(PrimitiveType::Uint256),
-                        "data" => return Type::Primitive(PrimitiveType::Bytes),
-                        _ => {}
-                    }
-                }
-                "block" => {
-                    match field_name {
-                        "timestamp" => return Type::Primitive(PrimitiveType::Uint256),
-                        "number" => return Type::Primitive(PrimitiveType::Uint256),
-                        _ => {}
-                    }
-                }
-                "tx" => {
-                    match field_name {
-                        "origin" => return Type::Primitive(PrimitiveType::Address),
-                        "gasprice" => return Type::Primitive(PrimitiveType::Uint256),
-                        _ => {}
-                    }
-                }
+                "msg" => match field_name {
+                    "sender" => return Type::Primitive(PrimitiveType::Address),
+                    "value" => return Type::Primitive(PrimitiveType::Uint256),
+                    "data" => return Type::Primitive(PrimitiveType::Bytes),
+                    _ => {}
+                },
+                "block" => match field_name {
+                    "timestamp" => return Type::Primitive(PrimitiveType::Uint256),
+                    "number" => return Type::Primitive(PrimitiveType::Uint256),
+                    _ => {}
+                },
+                "tx" => match field_name {
+                    "origin" => return Type::Primitive(PrimitiveType::Address),
+                    "gasprice" => return Type::Primitive(PrimitiveType::Uint256),
+                    _ => {}
+                },
                 // Solana-specific: clock.timestamp, clock.slot, clock.epoch
-                "clock" => {
-                    match field_name {
-                        "timestamp" => return Type::Primitive(PrimitiveType::Int64),
-                        "slot" => return Type::Primitive(PrimitiveType::Uint64),
-                        "epoch" => return Type::Primitive(PrimitiveType::Uint64),
-                        "unix_timestamp" => return Type::Primitive(PrimitiveType::Int64),
-                        _ => {}
-                    }
-                }
+                "clock" => match field_name {
+                    "timestamp" => return Type::Primitive(PrimitiveType::Int64),
+                    "slot" => return Type::Primitive(PrimitiveType::Uint64),
+                    "epoch" => return Type::Primitive(PrimitiveType::Uint64),
+                    "unix_timestamp" => return Type::Primitive(PrimitiveType::Int64),
+                    _ => {}
+                },
                 _ => {
                     // Look up field on user-defined type
-                    let field_ty = self.symbols.lookup_type(&SmolStr::from(type_name)).and_then(|type_def| {
-                        match type_def {
+                    let field_ty = self
+                        .symbols
+                        .lookup_type(&SmolStr::from(type_name))
+                        .and_then(|type_def| match type_def {
                             TypeDef::Struct(s) => s.fields.get(field_name).cloned(),
                             TypeDef::Contract(c) => c.state_fields.get(field_name).cloned(),
                             _ => None,
-                        }
-                    });
+                        });
 
                     if let Some(ty) = field_ty {
                         return ty;
@@ -1687,7 +1761,10 @@ impl TypeChecker {
             _ => {
                 self.error(TypeError::NotIndexable {
                     ty: expr_ty.to_string(),
-                    span: miette::SourceSpan::new(idx.span.start.into(), (idx.span.end - idx.span.start).into()),
+                    span: miette::SourceSpan::new(
+                        idx.span.start.into(),
+                        idx.span.end - idx.span.start,
+                    ),
                     src: self.source.clone(),
                 });
                 Type::Error
@@ -1762,35 +1839,40 @@ impl TypeChecker {
                     ));
                 }
             }
-            ast::AssignOp::AddAssign | ast::AssignOp::SubAssign |
-            ast::AssignOp::MulAssign | ast::AssignOp::DivAssign |
-            ast::AssignOp::RemAssign => {
+            ast::AssignOp::AddAssign
+            | ast::AssignOp::SubAssign
+            | ast::AssignOp::MulAssign
+            | ast::AssignOp::DivAssign
+            | ast::AssignOp::RemAssign => {
                 // Compound assignment: both must be numeric and compatible
-                if !target_ty.is_integer() || !self.types_compatible(&target_ty, &value_ty) {
-                    if !matches!(target_ty, Type::Error) && !matches!(value_ty, Type::Error) {
-                        self.error(TypeError::invalid_binary_op(
-                            &format!("{:?}", a.op),
-                            &target_ty,
-                            &value_ty,
-                            self.span(a.span),
-                            &self.source,
-                        ));
-                    }
+                if (!target_ty.is_integer() || !self.types_compatible(&target_ty, &value_ty))
+                    && !matches!(target_ty, Type::Error)
+                    && !matches!(value_ty, Type::Error)
+                {
+                    self.error(TypeError::invalid_binary_op(
+                        &format!("{:?}", a.op),
+                        &target_ty,
+                        &value_ty,
+                        self.span(a.span),
+                        &self.source,
+                    ));
                 }
             }
-            ast::AssignOp::BitAndAssign | ast::AssignOp::BitOrAssign |
-            ast::AssignOp::BitXorAssign => {
+            ast::AssignOp::BitAndAssign
+            | ast::AssignOp::BitOrAssign
+            | ast::AssignOp::BitXorAssign => {
                 // Bitwise compound assignment: both must be integer
-                if !target_ty.is_integer() || !value_ty.is_integer() {
-                    if !matches!(target_ty, Type::Error) && !matches!(value_ty, Type::Error) {
-                        self.error(TypeError::invalid_binary_op(
-                            &format!("{:?}", a.op),
-                            &target_ty,
-                            &value_ty,
-                            self.span(a.span),
-                            &self.source,
-                        ));
-                    }
+                if (!target_ty.is_integer() || !value_ty.is_integer())
+                    && !matches!(target_ty, Type::Error)
+                    && !matches!(value_ty, Type::Error)
+                {
+                    self.error(TypeError::invalid_binary_op(
+                        &format!("{:?}", a.op),
+                        &target_ty,
+                        &value_ty,
+                        self.span(a.span),
+                        &self.source,
+                    ));
                 }
             }
         }
@@ -1829,8 +1911,12 @@ impl TypeChecker {
         let type_name = n.ty.name();
 
         // Check if type exists
-        if self.symbols.lookup_type(&type_name).is_none() {
-            self.error(TypeError::undefined_type(&type_name, self.span(n.span), &self.source));
+        if self.symbols.lookup_type(type_name).is_none() {
+            self.error(TypeError::undefined_type(
+                type_name,
+                self.span(n.span),
+                &self.source,
+            ));
             return Type::Error;
         }
 
@@ -1855,8 +1941,12 @@ impl TypeChecker {
             // Allow integer literals to be compatible with any integer type
             (Type::Primitive(a), Type::Primitive(b)) if a.is_integer() && b.is_integer() => true,
             // Signer is compatible with Address (signers are addresses that have signed)
-            (Type::Primitive(PrimitiveType::Address), Type::Primitive(PrimitiveType::Signer)) => true,
-            (Type::Primitive(PrimitiveType::Signer), Type::Primitive(PrimitiveType::Address)) => true,
+            (Type::Primitive(PrimitiveType::Address), Type::Primitive(PrimitiveType::Signer)) => {
+                true
+            }
+            (Type::Primitive(PrimitiveType::Signer), Type::Primitive(PrimitiveType::Address)) => {
+                true
+            }
             (Type::Primitive(a), Type::Primitive(b)) => a == b,
             (Type::Unit, Type::Unit) => true,
             (Type::Never, _) => true, // Never is compatible with anything

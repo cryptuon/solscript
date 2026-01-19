@@ -75,7 +75,7 @@ impl TypePath {
     }
 
     /// Get the full path as a string
-    pub fn to_string(&self) -> String {
+    pub fn full_path(&self) -> String {
         self.segments
             .iter()
             .map(|s| s.name.as_str())
@@ -106,7 +106,7 @@ pub struct MappingType {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArrayType {
     pub element: TypePath,
-    pub sizes: Vec<Option<u64>>,  // None = dynamic [], Some(n) = fixed [n]
+    pub sizes: Vec<Option<u64>>, // None = dynamic [], Some(n) = fixed [n]
     pub span: Span,
 }
 
@@ -227,7 +227,7 @@ pub enum PrimitiveType {
 
 impl PrimitiveType {
     /// Try to parse a primitive type from a string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             // uint aliases
             "uint" | "uint256" => Some(Self::Uint256),

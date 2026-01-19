@@ -108,7 +108,12 @@ pub static TEMPLATES: &[Template] = &[
             name: "Escrow",
             description: "Trustless escrow with dispute resolution",
             difficulty: Difficulty::Advanced,
-            features: &["state machine", "multi-party", "deadlines", "dispute resolution"],
+            features: &[
+                "state machine",
+                "multi-party",
+                "deadlines",
+                "dispute resolution",
+            ],
         },
         main_sol: embedded::ESCROW_MAIN,
         config_template: embedded::ESCROW_CONFIG,

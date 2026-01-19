@@ -229,7 +229,7 @@ impl TypeError {
         Self::TypeMismatch {
             expected: expected.to_string(),
             found: found.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -237,7 +237,7 @@ impl TypeError {
     pub fn undefined_variable(name: &str, span: (usize, usize), src: &str) -> Self {
         Self::UndefinedVariable {
             name: name.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -245,7 +245,7 @@ impl TypeError {
     pub fn undefined_type(name: &str, span: (usize, usize), src: &str) -> Self {
         Self::UndefinedType {
             name: name.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -254,7 +254,7 @@ impl TypeError {
         Self::UndefinedField {
             field: field.to_string(),
             ty: ty.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -263,7 +263,7 @@ impl TypeError {
         Self::UndefinedMethod {
             method: method.to_string(),
             ty: ty.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -271,7 +271,7 @@ impl TypeError {
     pub fn not_callable(ty: &Type, span: (usize, usize), src: &str) -> Self {
         Self::NotCallable {
             ty: ty.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -280,7 +280,7 @@ impl TypeError {
         Self::WrongArgCount {
             expected,
             found,
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -296,7 +296,7 @@ impl TypeError {
             op: op.to_string(),
             left: left.to_string(),
             right: right.to_string(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }

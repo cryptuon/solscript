@@ -141,7 +141,9 @@ fn parse_contract(pair: Pair) -> Result<ContractDef, ParseError> {
                         members.push(ContractMember::StateVar(parse_state_var(member_inner)?));
                     }
                     Rule::constructor_def => {
-                        members.push(ContractMember::Constructor(parse_constructor(member_inner)?));
+                        members.push(ContractMember::Constructor(parse_constructor(
+                            member_inner,
+                        )?));
                     }
                     Rule::modifier_def => {
                         members.push(ContractMember::Modifier(parse_modifier_def(member_inner)?));
@@ -548,7 +550,7 @@ fn parse_function(pair: Pair) -> Result<FnDef, ParseError> {
         state_mutability,
         modifiers,
         return_params,
-        body,  // None for abstract functions (semicolon instead of block)
+        body, // None for abstract functions (semicolon instead of block)
         span,
     })
 }
@@ -780,7 +782,10 @@ fn parse_attribute_arg(pair: Pair) -> Result<AttributeArg, ParseError> {
             }
             Rule::string_lit => {
                 let s = parse_string_content(inner.as_str());
-                value = Some(AttributeValue::Literal(Literal::String(s, span_from_pair(&inner))));
+                value = Some(AttributeValue::Literal(Literal::String(
+                    s,
+                    span_from_pair(&inner),
+                )));
             }
             _ => {}
         }
@@ -806,7 +811,11 @@ fn parse_type_expr(pair: Pair) -> Result<TypeExpr, ParseError> {
             let mut inner_iter = inner.into_inner();
             let key = parse_type_expr(inner_iter.next().unwrap())?;
             let value = parse_type_expr(inner_iter.next().unwrap())?;
-            Ok(TypeExpr::Mapping(Box::new(MappingType { key, value, span })))
+            Ok(TypeExpr::Mapping(Box::new(MappingType {
+                key,
+                value,
+                span,
+            })))
         }
         Rule::array_type => {
             let span = span_from_pair(&inner);
@@ -1133,7 +1142,10 @@ fn parse_revert_stmt(pair: Pair) -> Result<RevertStmt, ParseError> {
             }
             Rule::revert_with_message => {
                 // revert("message") or revert()
-                let message = inner.into_inner().next().map(|s| parse_string_content(s.as_str()));
+                let message = inner
+                    .into_inner()
+                    .next()
+                    .map(|s| parse_string_content(s.as_str()));
                 return Ok(RevertStmt {
                     kind: RevertKind::Message(message),
                     span,
@@ -1231,7 +1243,7 @@ fn parse_or_expr(pair: Pair) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut left = parse_and_expr(inner.next().unwrap())?;
 
-    while let Some(right_pair) = inner.next() {
+    for right_pair in inner {
         let right = parse_and_expr(right_pair)?;
         let span = Span::dummy();
         left = Expr::Binary(Box::new(BinaryExpr {
@@ -1249,7 +1261,7 @@ fn parse_and_expr(pair: Pair) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut left = parse_bit_or_expr(inner.next().unwrap())?;
 
-    while let Some(right_pair) = inner.next() {
+    for right_pair in inner {
         let right = parse_bit_or_expr(right_pair)?;
         let span = Span::dummy();
         left = Expr::Binary(Box::new(BinaryExpr {
@@ -1267,7 +1279,7 @@ fn parse_bit_or_expr(pair: Pair) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut left = parse_bit_xor_expr(inner.next().unwrap())?;
 
-    while let Some(right_pair) = inner.next() {
+    for right_pair in inner {
         let right = parse_bit_xor_expr(right_pair)?;
         let span = Span::dummy();
         left = Expr::Binary(Box::new(BinaryExpr {
@@ -1285,7 +1297,7 @@ fn parse_bit_xor_expr(pair: Pair) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut left = parse_bit_and_expr(inner.next().unwrap())?;
 
-    while let Some(right_pair) = inner.next() {
+    for right_pair in inner {
         let right = parse_bit_and_expr(right_pair)?;
         let span = Span::dummy();
         left = Expr::Binary(Box::new(BinaryExpr {
@@ -1303,7 +1315,7 @@ fn parse_bit_and_expr(pair: Pair) -> Result<Expr, ParseError> {
     let mut inner = pair.into_inner();
     let mut left = parse_eq_expr(inner.next().unwrap())?;
 
-    while let Some(right_pair) = inner.next() {
+    for right_pair in inner {
         let right = parse_eq_expr(right_pair)?;
         let span = Span::dummy();
         left = Expr::Binary(Box::new(BinaryExpr {

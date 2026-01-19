@@ -70,7 +70,7 @@ impl ParseError {
     pub fn syntax(message: impl Into<String>, span: (usize, usize), src: &str) -> Self {
         Self::Syntax {
             message: message.into(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -84,14 +84,14 @@ impl ParseError {
         Self::UnexpectedToken {
             expected: expected.into(),
             found: found.into(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
 
     pub fn unexpected_eof(pos: usize, src: &str) -> Self {
         Self::UnexpectedEof {
-            span: SourceSpan::new(pos.into(), 0usize.into()),
+            span: SourceSpan::new(pos.into(), 0usize),
             src: src.to_string(),
         }
     }
@@ -99,7 +99,7 @@ impl ParseError {
     pub fn invalid_int(message: impl Into<String>, span: (usize, usize), src: &str) -> Self {
         Self::InvalidInt {
             message: message.into(),
-            span: SourceSpan::new(span.0.into(), (span.1 - span.0).into()),
+            span: SourceSpan::new(span.0.into(), span.1 - span.0),
             src: src.to_string(),
         }
     }
@@ -116,7 +116,7 @@ impl From<pest::error::Error<crate::Rule>> for ParseError {
 
         ParseError::Syntax {
             message,
-            span: SourceSpan::new(start.into(), (end - start).into()),
+            span: SourceSpan::new(start.into(), end - start),
             src: String::new(), // Will be filled in by caller
         }
     }

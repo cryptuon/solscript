@@ -69,8 +69,7 @@ impl Type {
             Type::Tuple(ts) => ts.iter().any(|t| t.has_type_vars()),
             Type::Mapping(k, v) => k.has_type_vars() || v.has_type_vars(),
             Type::Function(f) => {
-                f.params.iter().any(|t| t.has_type_vars())
-                    || f.return_type.has_type_vars()
+                f.params.iter().any(|t| t.has_type_vars()) || f.return_type.has_type_vars()
             }
             Type::Named(n) => n.type_args.iter().any(|t| t.has_type_vars()),
             _ => false,
@@ -177,7 +176,7 @@ pub enum PrimitiveType {
     // Other primitives
     Bool,
     Address,
-    Signer,  // Solana-specific: represents a required signer account
+    Signer, // Solana-specific: represents a required signer account
     String,
     Bytes,
     Bytes1,
@@ -222,66 +221,150 @@ impl PrimitiveType {
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            PrimitiveType::Uint8 | PrimitiveType::Uint16 | PrimitiveType::Uint24 |
-            PrimitiveType::Uint32 | PrimitiveType::Uint40 | PrimitiveType::Uint48 |
-            PrimitiveType::Uint56 | PrimitiveType::Uint64 | PrimitiveType::Uint72 |
-            PrimitiveType::Uint80 | PrimitiveType::Uint88 | PrimitiveType::Uint96 |
-            PrimitiveType::Uint104 | PrimitiveType::Uint112 | PrimitiveType::Uint120 |
-            PrimitiveType::Uint128 | PrimitiveType::Uint136 | PrimitiveType::Uint144 |
-            PrimitiveType::Uint152 | PrimitiveType::Uint160 | PrimitiveType::Uint168 |
-            PrimitiveType::Uint176 | PrimitiveType::Uint184 | PrimitiveType::Uint192 |
-            PrimitiveType::Uint200 | PrimitiveType::Uint208 | PrimitiveType::Uint216 |
-            PrimitiveType::Uint224 | PrimitiveType::Uint232 | PrimitiveType::Uint240 |
-            PrimitiveType::Uint248 | PrimitiveType::Uint256 |
-            PrimitiveType::Int8 | PrimitiveType::Int16 | PrimitiveType::Int24 |
-            PrimitiveType::Int32 | PrimitiveType::Int40 | PrimitiveType::Int48 |
-            PrimitiveType::Int56 | PrimitiveType::Int64 | PrimitiveType::Int72 |
-            PrimitiveType::Int80 | PrimitiveType::Int88 | PrimitiveType::Int96 |
-            PrimitiveType::Int104 | PrimitiveType::Int112 | PrimitiveType::Int120 |
-            PrimitiveType::Int128 | PrimitiveType::Int136 | PrimitiveType::Int144 |
-            PrimitiveType::Int152 | PrimitiveType::Int160 | PrimitiveType::Int168 |
-            PrimitiveType::Int176 | PrimitiveType::Int184 | PrimitiveType::Int192 |
-            PrimitiveType::Int200 | PrimitiveType::Int208 | PrimitiveType::Int216 |
-            PrimitiveType::Int224 | PrimitiveType::Int232 | PrimitiveType::Int240 |
-            PrimitiveType::Int248 | PrimitiveType::Int256
+            PrimitiveType::Uint8
+                | PrimitiveType::Uint16
+                | PrimitiveType::Uint24
+                | PrimitiveType::Uint32
+                | PrimitiveType::Uint40
+                | PrimitiveType::Uint48
+                | PrimitiveType::Uint56
+                | PrimitiveType::Uint64
+                | PrimitiveType::Uint72
+                | PrimitiveType::Uint80
+                | PrimitiveType::Uint88
+                | PrimitiveType::Uint96
+                | PrimitiveType::Uint104
+                | PrimitiveType::Uint112
+                | PrimitiveType::Uint120
+                | PrimitiveType::Uint128
+                | PrimitiveType::Uint136
+                | PrimitiveType::Uint144
+                | PrimitiveType::Uint152
+                | PrimitiveType::Uint160
+                | PrimitiveType::Uint168
+                | PrimitiveType::Uint176
+                | PrimitiveType::Uint184
+                | PrimitiveType::Uint192
+                | PrimitiveType::Uint200
+                | PrimitiveType::Uint208
+                | PrimitiveType::Uint216
+                | PrimitiveType::Uint224
+                | PrimitiveType::Uint232
+                | PrimitiveType::Uint240
+                | PrimitiveType::Uint248
+                | PrimitiveType::Uint256
+                | PrimitiveType::Int8
+                | PrimitiveType::Int16
+                | PrimitiveType::Int24
+                | PrimitiveType::Int32
+                | PrimitiveType::Int40
+                | PrimitiveType::Int48
+                | PrimitiveType::Int56
+                | PrimitiveType::Int64
+                | PrimitiveType::Int72
+                | PrimitiveType::Int80
+                | PrimitiveType::Int88
+                | PrimitiveType::Int96
+                | PrimitiveType::Int104
+                | PrimitiveType::Int112
+                | PrimitiveType::Int120
+                | PrimitiveType::Int128
+                | PrimitiveType::Int136
+                | PrimitiveType::Int144
+                | PrimitiveType::Int152
+                | PrimitiveType::Int160
+                | PrimitiveType::Int168
+                | PrimitiveType::Int176
+                | PrimitiveType::Int184
+                | PrimitiveType::Int192
+                | PrimitiveType::Int200
+                | PrimitiveType::Int208
+                | PrimitiveType::Int216
+                | PrimitiveType::Int224
+                | PrimitiveType::Int232
+                | PrimitiveType::Int240
+                | PrimitiveType::Int248
+                | PrimitiveType::Int256
         )
     }
 
     pub fn is_signed(&self) -> bool {
         matches!(
             self,
-            PrimitiveType::Int8 | PrimitiveType::Int16 | PrimitiveType::Int24 |
-            PrimitiveType::Int32 | PrimitiveType::Int40 | PrimitiveType::Int48 |
-            PrimitiveType::Int56 | PrimitiveType::Int64 | PrimitiveType::Int72 |
-            PrimitiveType::Int80 | PrimitiveType::Int88 | PrimitiveType::Int96 |
-            PrimitiveType::Int104 | PrimitiveType::Int112 | PrimitiveType::Int120 |
-            PrimitiveType::Int128 | PrimitiveType::Int136 | PrimitiveType::Int144 |
-            PrimitiveType::Int152 | PrimitiveType::Int160 | PrimitiveType::Int168 |
-            PrimitiveType::Int176 | PrimitiveType::Int184 | PrimitiveType::Int192 |
-            PrimitiveType::Int200 | PrimitiveType::Int208 | PrimitiveType::Int216 |
-            PrimitiveType::Int224 | PrimitiveType::Int232 | PrimitiveType::Int240 |
-            PrimitiveType::Int248 | PrimitiveType::Int256
+            PrimitiveType::Int8
+                | PrimitiveType::Int16
+                | PrimitiveType::Int24
+                | PrimitiveType::Int32
+                | PrimitiveType::Int40
+                | PrimitiveType::Int48
+                | PrimitiveType::Int56
+                | PrimitiveType::Int64
+                | PrimitiveType::Int72
+                | PrimitiveType::Int80
+                | PrimitiveType::Int88
+                | PrimitiveType::Int96
+                | PrimitiveType::Int104
+                | PrimitiveType::Int112
+                | PrimitiveType::Int120
+                | PrimitiveType::Int128
+                | PrimitiveType::Int136
+                | PrimitiveType::Int144
+                | PrimitiveType::Int152
+                | PrimitiveType::Int160
+                | PrimitiveType::Int168
+                | PrimitiveType::Int176
+                | PrimitiveType::Int184
+                | PrimitiveType::Int192
+                | PrimitiveType::Int200
+                | PrimitiveType::Int208
+                | PrimitiveType::Int216
+                | PrimitiveType::Int224
+                | PrimitiveType::Int232
+                | PrimitiveType::Int240
+                | PrimitiveType::Int248
+                | PrimitiveType::Int256
         )
     }
 
     pub fn is_fixed_bytes(&self) -> bool {
         matches!(
             self,
-            PrimitiveType::Bytes1 | PrimitiveType::Bytes2 | PrimitiveType::Bytes3 |
-            PrimitiveType::Bytes4 | PrimitiveType::Bytes5 | PrimitiveType::Bytes6 |
-            PrimitiveType::Bytes7 | PrimitiveType::Bytes8 | PrimitiveType::Bytes9 |
-            PrimitiveType::Bytes10 | PrimitiveType::Bytes11 | PrimitiveType::Bytes12 |
-            PrimitiveType::Bytes13 | PrimitiveType::Bytes14 | PrimitiveType::Bytes15 |
-            PrimitiveType::Bytes16 | PrimitiveType::Bytes17 | PrimitiveType::Bytes18 |
-            PrimitiveType::Bytes19 | PrimitiveType::Bytes20 | PrimitiveType::Bytes21 |
-            PrimitiveType::Bytes22 | PrimitiveType::Bytes23 | PrimitiveType::Bytes24 |
-            PrimitiveType::Bytes25 | PrimitiveType::Bytes26 | PrimitiveType::Bytes27 |
-            PrimitiveType::Bytes28 | PrimitiveType::Bytes29 | PrimitiveType::Bytes30 |
-            PrimitiveType::Bytes31 | PrimitiveType::Bytes32
+            PrimitiveType::Bytes1
+                | PrimitiveType::Bytes2
+                | PrimitiveType::Bytes3
+                | PrimitiveType::Bytes4
+                | PrimitiveType::Bytes5
+                | PrimitiveType::Bytes6
+                | PrimitiveType::Bytes7
+                | PrimitiveType::Bytes8
+                | PrimitiveType::Bytes9
+                | PrimitiveType::Bytes10
+                | PrimitiveType::Bytes11
+                | PrimitiveType::Bytes12
+                | PrimitiveType::Bytes13
+                | PrimitiveType::Bytes14
+                | PrimitiveType::Bytes15
+                | PrimitiveType::Bytes16
+                | PrimitiveType::Bytes17
+                | PrimitiveType::Bytes18
+                | PrimitiveType::Bytes19
+                | PrimitiveType::Bytes20
+                | PrimitiveType::Bytes21
+                | PrimitiveType::Bytes22
+                | PrimitiveType::Bytes23
+                | PrimitiveType::Bytes24
+                | PrimitiveType::Bytes25
+                | PrimitiveType::Bytes26
+                | PrimitiveType::Bytes27
+                | PrimitiveType::Bytes28
+                | PrimitiveType::Bytes29
+                | PrimitiveType::Bytes30
+                | PrimitiveType::Bytes31
+                | PrimitiveType::Bytes32
         )
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             // uint aliases
             "uint" | "uint256" => Some(Self::Uint256),

@@ -3,7 +3,7 @@
 use indexmap::IndexMap;
 use smol_str::SmolStr;
 
-use crate::types::{Type, TypeDef, FunctionType};
+use crate::types::{FunctionType, Type, TypeDef};
 
 /// A symbol in the symbol table
 #[derive(Debug, Clone)]
@@ -122,7 +122,10 @@ impl SymbolTable {
 
     /// Get the current scope kind
     pub fn current_scope_kind(&self) -> ScopeKind {
-        self.scopes.last().map(|s| s.kind).unwrap_or(ScopeKind::Global)
+        self.scopes
+            .last()
+            .map(|s| s.kind)
+            .unwrap_or(ScopeKind::Global)
     }
 
     /// Check if we're in a contract scope

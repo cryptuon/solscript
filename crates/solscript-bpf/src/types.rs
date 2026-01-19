@@ -35,9 +35,7 @@ impl<'ctx> TypeMapper<'ctx> {
     /// Get the LLVM type for a SolScript type expression
     pub fn get_type(&mut self, ty: &solscript_ast::TypeExpr) -> BasicTypeEnum<'ctx> {
         match ty {
-            solscript_ast::TypeExpr::Path(path) => {
-                self.get_primitive_type(&path.name())
-            }
+            solscript_ast::TypeExpr::Path(path) => self.get_primitive_type(&path.name()),
             solscript_ast::TypeExpr::Array(arr) => {
                 // arr.element is a TypePath, get the primitive type directly
                 let element_type = self.get_primitive_type(&arr.element.name());
@@ -55,9 +53,7 @@ impl<'ctx> TypeMapper<'ctx> {
                 self.get_mapping_type()
             }
             solscript_ast::TypeExpr::Tuple(tuple) => {
-                let types: Vec<_> = tuple.elements.iter()
-                    .map(|t| self.get_type(t))
-                    .collect();
+                let types: Vec<_> = tuple.elements.iter().map(|t| self.get_type(t)).collect();
                 self.context.struct_type(&types, false).into()
             }
         }
@@ -86,9 +82,7 @@ impl<'ctx> TypeMapper<'ctx> {
             "bool" => self.context.bool_type().into(),
 
             // Address (32 bytes for Solana public key)
-            "address" | "pubkey" | "Pubkey" => {
-                self.context.i8_type().array_type(32).into()
-            }
+            "address" | "pubkey" | "Pubkey" => self.context.i8_type().array_type(32).into(),
 
             // String (pointer to data + length)
             "string" => self.get_string_type(),
@@ -104,50 +98,58 @@ impl<'ctx> TypeMapper<'ctx> {
 
     /// Get the string type (pointer + length)
     fn get_string_type(&self) -> BasicTypeEnum<'ctx> {
-        self.context.struct_type(
-            &[
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.i64_type().into(),
-            ],
-            false,
-        ).into()
+        self.context
+            .struct_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                ],
+                false,
+            )
+            .into()
     }
 
     /// Get the bytes type (dynamic byte array)
     fn get_bytes_type(&self) -> BasicTypeEnum<'ctx> {
-        self.context.struct_type(
-            &[
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.i64_type().into(),
-            ],
-            false,
-        ).into()
+        self.context
+            .struct_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                ],
+                false,
+            )
+            .into()
     }
 
     /// Get a dynamic array type
     fn get_dynamic_array_type(&self, element_type: BasicTypeEnum<'ctx>) -> BasicTypeEnum<'ctx> {
         // Dynamic arrays are represented as { ptr, len }
-        self.context.struct_type(
-            &[
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.i64_type().into(),
-            ],
-            false,
-        ).into()
+        self.context
+            .struct_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                ],
+                false,
+            )
+            .into()
     }
 
     /// Get the mapping type placeholder
     fn get_mapping_type(&self) -> BasicTypeEnum<'ctx> {
         // Mappings in Solana are PDAs, represented as a special struct
-        self.context.struct_type(
-            &[
-                // PDA bump seed
-                self.context.i8_type().into(),
-                // Program ID
-                self.context.i8_type().array_type(32).into(),
-            ],
-            false,
-        ).into()
+        self.context
+            .struct_type(
+                &[
+                    // PDA bump seed
+                    self.context.i8_type().into(),
+                    // Program ID
+                    self.context.i8_type().array_type(32).into(),
+                ],
+                false,
+            )
+            .into()
     }
 
     /// Register a custom struct type with field names
@@ -163,10 +165,13 @@ impl<'ctx> TypeMapper<'ctx> {
         // Track field information
         let mut fields_map = HashMap::new();
         for (i, (field_name, field_ty)) in field_names.iter().zip(field_types.iter()).enumerate() {
-            fields_map.insert(field_name.clone(), FieldInfo {
-                index: i as u32,
-                ty: *field_ty,
-            });
+            fields_map.insert(
+                field_name.clone(),
+                FieldInfo {
+                    index: i as u32,
+                    ty: *field_ty,
+                },
+            );
         }
         self.struct_fields.insert(name.to_string(), fields_map);
 
@@ -174,7 +179,11 @@ impl<'ctx> TypeMapper<'ctx> {
     }
 
     /// Register a struct type without field names (backward compatibility)
-    pub fn register_struct_types(&mut self, name: &str, fields: &[BasicTypeEnum<'ctx>]) -> StructType<'ctx> {
+    pub fn register_struct_types(
+        &mut self,
+        name: &str,
+        fields: &[BasicTypeEnum<'ctx>],
+    ) -> StructType<'ctx> {
         let struct_type = self.context.struct_type(fields, false);
         self.struct_types.insert(name.to_string(), struct_type);
         struct_type
@@ -191,7 +200,11 @@ impl<'ctx> TypeMapper<'ctx> {
     }
 
     /// Get the index and type of a field in a struct
-    pub fn get_field_index(&self, struct_name: &str, field_name: &str) -> Option<(u32, BasicTypeEnum<'ctx>)> {
+    pub fn get_field_index(
+        &self,
+        struct_name: &str,
+        field_name: &str,
+    ) -> Option<(u32, BasicTypeEnum<'ctx>)> {
         let info = self.get_field_info(struct_name, field_name)?;
         Some((info.index, info.ty))
     }
@@ -205,12 +218,10 @@ impl<'ctx> TypeMapper<'ctx> {
                 elem_size * t.len() as u64
             }
             BasicTypeEnum::StructType(t) => {
-                t.get_field_types().iter()
-                    .map(|f| self.size_of(*f))
-                    .sum()
+                t.get_field_types().iter().map(|f| self.size_of(*f)).sum()
             }
             BasicTypeEnum::PointerType(_) => 8, // 64-bit pointers
-            _ => 8, // Default
+            _ => 8,                             // Default
         }
     }
 

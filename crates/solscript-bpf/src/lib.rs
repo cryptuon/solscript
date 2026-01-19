@@ -13,9 +13,9 @@
 #[cfg(feature = "llvm")]
 mod codegen;
 #[cfg(feature = "llvm")]
-mod types;
-#[cfg(feature = "llvm")]
 mod intrinsics;
+#[cfg(feature = "llvm")]
+mod types;
 
 use solscript_ast::Program;
 use std::path::{Path, PathBuf};
@@ -97,11 +97,7 @@ pub struct CompileResult {
 }
 
 /// Compile a SolScript program to BPF
-pub fn compile(
-    program: &Program,
-    source: &str,
-    options: &CompileOptions,
-) -> Result<CompileResult> {
+pub fn compile(program: &Program, source: &str, options: &CompileOptions) -> Result<CompileResult> {
     let start = std::time::Instant::now();
 
     if options.use_cargo_sbf {
@@ -134,14 +130,14 @@ fn compile_via_anchor(
     }
 
     // Generate Anchor code
-    let generated = solscript_codegen::generate(program)
-        .map_err(|e| BpfError::CodegenError(e.to_string()))?;
+    let generated =
+        solscript_codegen::generate(program).map_err(|e| BpfError::CodegenError(e.to_string()))?;
 
     // Write to output directory
     let anchor_dir = options.output_dir.join("anchor_project");
     generated
         .write_to_dir(&anchor_dir)
-        .map_err(|e| BpfError::IoError(e))?;
+        .map_err(BpfError::IoError)?;
 
     // Check if cargo build-sbf is available
     let build_sbf_available = Command::new("cargo")
@@ -201,10 +197,7 @@ fn compile_via_anchor(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(BpfError::BuildError(format!(
-            "Build failed:\n{}",
-            stderr
-        )));
+        return Err(BpfError::BuildError(format!("Build failed:\n{}", stderr)));
     }
 
     // Find the compiled .so file
@@ -267,9 +260,12 @@ fn link_bpf_object(obj_path: &Path, so_path: &Path) -> Result<()> {
     // Try sbpf-linker first (preferred for Solana programs)
     let sbpf_result = Command::new("sbpf-linker")
         .args([
-            "--cpu", "v3",
-            "--output", so_path.to_str().unwrap(),
-            "--export", "entrypoint",
+            "--cpu",
+            "v3",
+            "--output",
+            so_path.to_str().unwrap(),
+            "--export",
+            "entrypoint",
             obj_path.to_str().unwrap(),
         ])
         .output();
@@ -278,7 +274,8 @@ fn link_bpf_object(obj_path: &Path, so_path: &Path) -> Result<()> {
         if output.status.success() {
             // Check if the output file has content (sbpf-linker sometimes produces empty files)
             if let Ok(meta) = std::fs::metadata(so_path) {
-                if meta.len() > 500 {  // Sanity check: valid linked output should be larger than 500 bytes
+                if meta.len() > 500 {
+                    // Sanity check: valid linked output should be larger than 500 bytes
                     return Ok(());
                 }
             }
@@ -329,8 +326,7 @@ fn compile_direct_llvm(
 
     // Set up BPF target
     let triple = TargetTriple::create("bpfel-unknown-none");
-    let target = Target::from_triple(&triple)
-        .map_err(|e| BpfError::TargetError(e.to_string()))?;
+    let target = Target::from_triple(&triple).map_err(|e| BpfError::TargetError(e.to_string()))?;
 
     let opt = match options.opt_level {
         0 => OptimizationLevel::None,

@@ -2,11 +2,11 @@
 //!
 //! Provides IDE features like diagnostics, go-to-definition, hover, and autocomplete.
 
-mod document;
-mod diagnostics;
 mod completion;
-mod hover;
 mod definition;
+mod diagnostics;
+mod document;
+mod hover;
 
 use dashmap::DashMap;
 use tower_lsp::jsonrpc::Result;
@@ -212,7 +212,9 @@ fn format_program(program: &solscript_ast::Program) -> String {
                         }
                         ContractMember::Constructor(c) => {
                             output.push_str("    constructor(");
-                            let params: Vec<_> = c.params.iter()
+                            let params: Vec<_> = c
+                                .params
+                                .iter()
                                 .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
                                 .collect();
                             output.push_str(&params.join(", "));
@@ -228,7 +230,9 @@ fn format_program(program: &solscript_ast::Program) -> String {
             }
             Item::Event(e) => {
                 output.push_str(&format!("event {}(", e.name.name));
-                let params: Vec<_> = e.params.iter()
+                let params: Vec<_> = e
+                    .params
+                    .iter()
                     .map(|p| {
                         let indexed = if p.indexed { "indexed " } else { "" };
                         format!("{} {}{}", format_type(&p.ty), indexed, p.name.name)
@@ -239,7 +243,9 @@ fn format_program(program: &solscript_ast::Program) -> String {
             }
             Item::Error(e) => {
                 output.push_str(&format!("error {}(", e.name.name));
-                let params: Vec<_> = e.params.iter()
+                let params: Vec<_> = e
+                    .params
+                    .iter()
                     .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
                     .collect();
                 output.push_str(&params.join(", "));
@@ -278,11 +284,13 @@ fn format_fn_sig(sig: &solscript_ast::FnSig, indent: usize) -> String {
 
     output.push_str(&format!("{}function {}(", ind, sig.name.name));
 
-    let params: Vec<_> = sig.params.iter()
+    let params: Vec<_> = sig
+        .params
+        .iter()
         .map(|p| format!("{} {}", p.ty.name(), p.name.name))
         .collect();
     output.push_str(&params.join(", "));
-    output.push_str(")");
+    output.push(')');
 
     if let Some(vis) = &sig.visibility {
         output.push_str(&format!(" {}", format_visibility(vis)));
@@ -298,11 +306,9 @@ fn format_fn_sig(sig: &solscript_ast::FnSig, indent: usize) -> String {
 
     if !sig.return_params.is_empty() {
         output.push_str(" returns (");
-        let returns: Vec<_> = sig.return_params.iter()
-            .map(|p| p.ty.name())
-            .collect();
+        let returns: Vec<_> = sig.return_params.iter().map(|p| p.ty.name()).collect();
         output.push_str(&returns.join(", "));
-        output.push_str(")");
+        output.push(')');
     }
 
     output.push_str(";\n");
@@ -320,11 +326,13 @@ fn format_function(f: &solscript_ast::FnDef, indent: usize) -> String {
 
     output.push_str(&format!("{}function {}(", ind, f.name.name));
 
-    let params: Vec<_> = f.params.iter()
+    let params: Vec<_> = f
+        .params
+        .iter()
         .map(|p| format!("{} {}", format_type(&p.ty), p.name.name))
         .collect();
     output.push_str(&params.join(", "));
-    output.push_str(")");
+    output.push(')');
 
     // Visibility
     if let Some(vis) = &f.visibility {
@@ -343,11 +351,9 @@ fn format_function(f: &solscript_ast::FnDef, indent: usize) -> String {
     // Returns
     if !f.return_params.is_empty() {
         output.push_str(" returns (");
-        let returns: Vec<_> = f.return_params.iter()
-            .map(|p| format_type(&p.ty))
-            .collect();
+        let returns: Vec<_> = f.return_params.iter().map(|p| format_type(&p.ty)).collect();
         output.push_str(&returns.join(", "));
-        output.push_str(")");
+        output.push(')');
     }
 
     if f.body.is_some() {

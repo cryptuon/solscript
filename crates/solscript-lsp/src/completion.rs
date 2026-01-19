@@ -1,7 +1,7 @@
 //! Autocompletion for the language server
 
-use tower_lsp::lsp_types::*;
 use crate::Document;
+use tower_lsp::lsp_types::*;
 
 /// Get completions at a position
 pub fn get_completions(doc: &Document, position: Position) -> Vec<CompletionItem> {
@@ -19,7 +19,8 @@ pub fn get_completions(doc: &Document, position: Position) -> Vec<CompletionItem
     if prefix.ends_with('.') {
         // Find what's before the dot
         let trimmed = prefix.trim_end_matches('.');
-        let word_start = trimmed.rfind(|c: char| !c.is_alphanumeric() && c != '_')
+        let word_start = trimmed
+            .rfind(|c: char| !c.is_alphanumeric() && c != '_')
             .map(|i| i + 1)
             .unwrap_or(0);
         let object_name = &trimmed[word_start..];
@@ -47,24 +48,60 @@ pub fn get_completions(doc: &Document, position: Position) -> Vec<CompletionItem
 
 fn get_keyword_completions() -> Vec<CompletionItem> {
     let keywords = vec![
-        ("contract", "contract ${1:Name} {\n\t$0\n}", "Define a contract"),
-        ("function", "function ${1:name}(${2:params}) ${3:public} {\n\t$0\n}", "Define a function"),
-        ("constructor", "constructor(${1:params}) {\n\t$0\n}", "Define a constructor"),
-        ("modifier", "modifier ${1:name}(${2:params}) {\n\t$0\n\t_;\n}", "Define a modifier"),
+        (
+            "contract",
+            "contract ${1:Name} {\n\t$0\n}",
+            "Define a contract",
+        ),
+        (
+            "function",
+            "function ${1:name}(${2:params}) ${3:public} {\n\t$0\n}",
+            "Define a function",
+        ),
+        (
+            "constructor",
+            "constructor(${1:params}) {\n\t$0\n}",
+            "Define a constructor",
+        ),
+        (
+            "modifier",
+            "modifier ${1:name}(${2:params}) {\n\t$0\n\t_;\n}",
+            "Define a modifier",
+        ),
         ("event", "event ${1:Name}(${2:params});", "Define an event"),
-        ("error", "error ${1:Name}(${2:params});", "Define a custom error"),
+        (
+            "error",
+            "error ${1:Name}(${2:params});",
+            "Define a custom error",
+        ),
         ("struct", "struct ${1:Name} {\n\t$0\n}", "Define a struct"),
         ("enum", "enum ${1:Name} {\n\t$0\n}", "Define an enum"),
-        ("interface", "interface ${1:Name} {\n\t$0\n}", "Define an interface"),
+        (
+            "interface",
+            "interface ${1:Name} {\n\t$0\n}",
+            "Define an interface",
+        ),
         ("if", "if (${1:condition}) {\n\t$0\n}", "If statement"),
         ("else", "else {\n\t$0\n}", "Else clause"),
-        ("for", "for (${1:uint256 i = 0}; ${2:i < n}; ${3:i += 1}) {\n\t$0\n}", "For loop"),
+        (
+            "for",
+            "for (${1:uint256 i = 0}; ${2:i < n}; ${3:i += 1}) {\n\t$0\n}",
+            "For loop",
+        ),
         ("while", "while (${1:condition}) {\n\t$0\n}", "While loop"),
         ("return", "return ${0};", "Return statement"),
-        ("require", "require(${1:condition}, \"${2:message}\");", "Require statement"),
+        (
+            "require",
+            "require(${1:condition}, \"${2:message}\");",
+            "Require statement",
+        ),
         ("revert", "revert(\"${1:message}\");", "Revert statement"),
         ("emit", "emit ${1:EventName}(${2:args});", "Emit event"),
-        ("mapping", "mapping(${1:KeyType} => ${2:ValueType})", "Mapping type"),
+        (
+            "mapping",
+            "mapping(${1:KeyType} => ${2:ValueType})",
+            "Mapping type",
+        ),
         ("public", "public", "Public visibility"),
         ("private", "private", "Private visibility"),
         ("internal", "internal", "Internal visibility"),
@@ -266,7 +303,9 @@ fn get_member_completions(doc: &Document, object_name: &str) -> Vec<CompletionIt
                 label: "transfer".to_string(),
                 kind: Some(CompletionItemKind::METHOD),
                 detail: Some("Transfer SPL tokens".to_string()),
-                insert_text: Some("transfer(${1:from}, ${2:to}, ${3:authority}, ${4:amount})".to_string()),
+                insert_text: Some(
+                    "transfer(${1:from}, ${2:to}, ${3:authority}, ${4:amount})".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             });
@@ -274,7 +313,9 @@ fn get_member_completions(doc: &Document, object_name: &str) -> Vec<CompletionIt
                 label: "mint".to_string(),
                 kind: Some(CompletionItemKind::METHOD),
                 detail: Some("Mint SPL tokens".to_string()),
-                insert_text: Some("mint(${1:mint}, ${2:to}, ${3:authority}, ${4:amount})".to_string()),
+                insert_text: Some(
+                    "mint(${1:mint}, ${2:to}, ${3:authority}, ${4:amount})".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             });
@@ -282,7 +323,9 @@ fn get_member_completions(doc: &Document, object_name: &str) -> Vec<CompletionIt
                 label: "burn".to_string(),
                 kind: Some(CompletionItemKind::METHOD),
                 detail: Some("Burn SPL tokens".to_string()),
-                insert_text: Some("burn(${1:from}, ${2:mint}, ${3:authority}, ${4:amount})".to_string()),
+                insert_text: Some(
+                    "burn(${1:from}, ${2:mint}, ${3:authority}, ${4:amount})".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             });
@@ -373,7 +416,10 @@ fn get_symbol_completions(ast: &solscript_ast::Program) -> Vec<CompletionItem> {
     items
 }
 
-fn get_struct_member_completions(ast: &solscript_ast::Program, struct_name: &str) -> Vec<CompletionItem> {
+fn get_struct_member_completions(
+    ast: &solscript_ast::Program,
+    struct_name: &str,
+) -> Vec<CompletionItem> {
     let mut items = Vec::new();
 
     for item in &ast.items {
@@ -383,7 +429,7 @@ fn get_struct_member_completions(ast: &solscript_ast::Program, struct_name: &str
                     items.push(CompletionItem {
                         label: field.name.name.to_string(),
                         kind: Some(CompletionItemKind::FIELD),
-                        detail: Some(format!("{}", field.ty.name())),
+                        detail: Some(field.ty.name().to_string()),
                         ..Default::default()
                     });
                 }

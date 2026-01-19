@@ -7,6 +7,7 @@ use crate::ir::*;
 use crate::GeneratedProject;
 
 /// Rust code generator for Anchor programs
+#[derive(Default)]
 pub struct RustGenerator {
     /// Events for looking up field names
     events: Vec<Event>,
@@ -29,10 +30,13 @@ impl RustGenerator {
     }
 
     /// Generate a complete Anchor project from Solana IR
-    pub fn generate(&mut self, programs: &[SolanaProgram]) -> Result<GeneratedProject, CodegenError> {
+    pub fn generate(
+        &mut self,
+        programs: &[SolanaProgram],
+    ) -> Result<GeneratedProject, CodegenError> {
         if programs.is_empty() {
             return Err(CodegenError::MissingElement(
-                "No deployable contracts found (abstract contracts cannot be deployed)".to_string()
+                "No deployable contracts found (abstract contracts cannot be deployed)".to_string(),
             ));
         }
 
@@ -47,7 +51,8 @@ impl RustGenerator {
         self.internal_functions.clear();
         for instruction in &program.instructions {
             if !instruction.is_public {
-                self.internal_functions.insert(to_snake_case(&instruction.name));
+                self.internal_functions
+                    .insert(to_snake_case(&instruction.name));
             }
         }
 
@@ -119,9 +124,15 @@ impl RustGenerator {
             // Determine if this is a should_fail test
             if let Some(expected_msg) = &test.should_fail {
                 if expected_msg.is_empty() {
-                    output.push_str(&format!("    #[test]\n    #[should_panic]\n    fn {}() {{\n", test_name));
+                    output.push_str(&format!(
+                        "    #[test]\n    #[should_panic]\n    fn {}() {{\n",
+                        test_name
+                    ));
                 } else {
-                    output.push_str(&format!("    #[test]\n    #[should_panic(expected = \"{}\")]\n    fn {}() {{\n", expected_msg, test_name));
+                    output.push_str(&format!(
+                        "    #[test]\n    #[should_panic(expected = \"{}\")]\n    fn {}() {{\n",
+                        expected_msg, test_name
+                    ));
                 }
             } else {
                 output.push_str(&format!("    #[test]\n    fn {}() {{\n", test_name));
@@ -186,7 +197,10 @@ pub mod {} {{
         ))
     }
 
-    fn generate_helper_functions(&mut self, program: &SolanaProgram) -> Result<String, CodegenError> {
+    fn generate_helper_functions(
+        &mut self,
+        program: &SolanaProgram,
+    ) -> Result<String, CodegenError> {
         let mut helpers = String::new();
 
         for instruction in &program.instructions {
@@ -236,11 +250,7 @@ fn {}({}) -> {} {{
 {}
 }}
 "#,
-            instruction.name,
-            name,
-            params_str,
-            return_type,
-            body
+            instruction.name, name, params_str, return_type, body
         ))
     }
 
@@ -265,7 +275,10 @@ fn {}({}) -> {} {{
         Ok(body)
     }
 
-    fn generate_instruction_handlers(&mut self, program: &SolanaProgram) -> Result<String, CodegenError> {
+    fn generate_instruction_handlers(
+        &mut self,
+        program: &SolanaProgram,
+    ) -> Result<String, CodegenError> {
         let mut handlers = String::new();
 
         for instruction in &program.instructions {
@@ -341,15 +354,14 @@ fn {}({}) -> {} {{
             // For now, we handle single modifiers. Multiple modifiers would need nesting.
             for modifier_call in &instruction.modifiers {
                 // Find the modifier definition
-                if let Some(modifier_def) = program.modifiers.iter().find(|m| m.name == modifier_call.name) {
+                if let Some(modifier_def) = program
+                    .modifiers
+                    .iter()
+                    .find(|m| m.name == modifier_call.name)
+                {
                     // Generate modifier body, replacing Placeholder with function body
                     for stmt in &modifier_def.body {
-                        self.generate_inlined_statement(
-                            stmt,
-                            &instruction.body,
-                            2,
-                            &mut body,
-                        )?;
+                        self.generate_inlined_statement(stmt, &instruction.body, 2, &mut body)?;
                     }
                 } else {
                     // Modifier not found, add comment and continue
@@ -387,7 +399,11 @@ fn {}({}) -> {} {{
                     output.push_str(&self.generate_statement(inner_stmt, indent)?);
                 }
             }
-            Statement::If { condition, then_block, else_block } => {
+            Statement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 // Need to recursively handle if statements that might contain placeholders
                 let ind = "    ".repeat(indent);
                 output.push_str(&format!(
@@ -435,24 +451,18 @@ fn {}({}) -> {} {{
                     )),
                 }
             }
-            Statement::Assign { target, value } => {
-                Ok(format!(
-                    "{}{} = {};\n",
-                    ind,
-                    self.generate_expression(target)?,
-                    self.generate_expression(value)?
-                ))
-            }
+            Statement::Assign { target, value } => Ok(format!(
+                "{}{} = {};\n",
+                ind,
+                self.generate_expression(target)?,
+                self.generate_expression(value)?
+            )),
             Statement::If {
                 condition,
                 then_block,
                 else_block,
             } => {
-                let mut result = format!(
-                    "{}if {} {{\n",
-                    ind,
-                    self.generate_expression(condition)?
-                );
+                let mut result = format!("{}if {} {{\n", ind, self.generate_expression(condition)?);
                 for s in then_block {
                     result.push_str(&self.generate_statement(s, indent + 1)?);
                 }
@@ -469,11 +479,8 @@ fn {}({}) -> {} {{
                 Ok(result)
             }
             Statement::While { condition, body } => {
-                let mut result = format!(
-                    "{}while {} {{\n",
-                    ind,
-                    self.generate_expression(condition)?
-                );
+                let mut result =
+                    format!("{}while {} {{\n", ind, self.generate_expression(condition)?);
                 for s in body {
                     result.push_str(&self.generate_statement(s, indent + 1)?);
                 }
@@ -505,11 +512,7 @@ fn {}({}) -> {} {{
                 }
 
                 if let Some(upd) = update {
-                    result.push_str(&format!(
-                        "{}    {};\n",
-                        ind,
-                        self.generate_expression(upd)?
-                    ));
+                    result.push_str(&format!("{}    {};\n", ind, self.generate_expression(upd)?));
                 }
 
                 result.push_str(&format!("{}}}\n", ind));
@@ -541,14 +544,18 @@ fn {}({}) -> {} {{
                     args_str.join(", ")
                 ))
             }
-            Statement::Require { condition, message: _ } => {
-                Ok(format!(
-                    "{}require!({}, CustomError::RequireFailed);\n",
-                    ind,
-                    self.generate_expression(condition)?
-                ))
-            }
-            Statement::RevertWithError { error_name, args: _ } => {
+            Statement::Require {
+                condition,
+                message: _,
+            } => Ok(format!(
+                "{}require!({}, CustomError::RequireFailed);\n",
+                ind,
+                self.generate_expression(condition)?
+            )),
+            Statement::RevertWithError {
+                error_name,
+                args: _,
+            } => {
                 // Note: Anchor's #[error_code] doesn't support struct-style errors with data
                 // So we generate simple error variants. The error parameters in Solidity
                 // are useful for type checking but don't translate to Anchor error data.
@@ -578,11 +585,12 @@ fn {}({}) -> {} {{
                 // Selfdestruct is handled by the close constraint on the state account
                 // The actual closing is done by Anchor based on the account constraint
                 // We just add a comment here for clarity
-                Ok(format!("{}// State account will be closed, rent sent to recipient\n", ind))
+                Ok(format!(
+                    "{}// State account will be closed, rent sent to recipient\n",
+                    ind
+                ))
             }
-            Statement::Expr(expr) => {
-                Ok(format!("{}{};\n", ind, self.generate_expression(expr)?))
-            }
+            Statement::Expr(expr) => Ok(format!("{}{};\n", ind, self.generate_expression(expr)?)),
             Statement::Placeholder => {
                 // Placeholder should be replaced during modifier inlining
                 // This should not appear in generated code
@@ -610,9 +618,16 @@ fn {}({}) -> {} {{
                     Ok(format!("ctx.accounts.state.{}", to_snake_case(field)))
                 }
             }
-            Expression::MappingAccess { mapping_name: _, keys: _, account_name } => {
+            Expression::MappingAccess {
+                mapping_name: _,
+                keys: _,
+                account_name,
+            } => {
                 // Access the PDA account's value field
-                Ok(format!("ctx.accounts.{}.value", to_snake_case(account_name)))
+                Ok(format!(
+                    "ctx.accounts.{}.value",
+                    to_snake_case(account_name)
+                ))
             }
             Expression::MsgSender => Ok("ctx.accounts.signer.key()".to_string()),
             Expression::MsgValue => Ok("0u64 /* msg.value not supported */".to_string()),
@@ -624,12 +639,18 @@ fn {}({}) -> {} {{
             // Solana Rent sysvar methods
             Expression::RentMinimumBalance { data_len } => {
                 let len_str = self.generate_expression(data_len)?;
-                Ok(format!("Rent::get()?.minimum_balance({} as usize)", len_str))
+                Ok(format!(
+                    "Rent::get()?.minimum_balance({} as usize)",
+                    len_str
+                ))
             }
             Expression::RentIsExempt { lamports, data_len } => {
                 let lamports_str = self.generate_expression(lamports)?;
                 let len_str = self.generate_expression(data_len)?;
-                Ok(format!("Rent::get()?.is_exempt({}, {} as usize)", lamports_str, len_str))
+                Ok(format!(
+                    "Rent::get()?.is_exempt({}, {} as usize)",
+                    lamports_str, len_str
+                ))
             }
             Expression::Binary { op, left, right } => {
                 let l = self.generate_expression(left)?;
@@ -704,9 +725,19 @@ fn {}({}) -> {} {{
                     .iter()
                     .map(|a| self.generate_expression(a))
                     .collect::<Result<Vec<_>, _>>()?;
-                Ok(format!("{}.{}({})", recv, to_snake_case(method), args_str.join(", ")))
+                Ok(format!(
+                    "{}.{}({})",
+                    recv,
+                    to_snake_case(method),
+                    args_str.join(", ")
+                ))
             }
-            Expression::CpiCall { program, interface_name, method, args } => {
+            Expression::CpiCall {
+                program,
+                interface_name,
+                method,
+                args,
+            } => {
                 let prog = self.generate_expression(program)?;
                 let args_str: Vec<String> = args
                     .iter()
@@ -739,14 +770,8 @@ fn {}({}) -> {} {{
                 let mut account_infos = Vec::new();
                 for arg in args_str.iter() {
                     // Add each argument that looks like a pubkey as an account
-                    account_metas.push(format!(
-                        "AccountMeta::new({}, false)",
-                        arg
-                    ));
-                    account_infos.push(format!(
-                        "/* account_info for {} */",
-                        arg
-                    ));
+                    account_metas.push(format!("AccountMeta::new({}, false)", arg));
+                    account_infos.push(format!("/* account_info for {} */", arg));
                 }
 
                 let accounts_vec = if account_metas.is_empty() {
@@ -785,12 +810,20 @@ fn {}({}) -> {} {{
                     accounts = accounts_vec,
                 ))
             }
-            Expression::InterfaceCast { interface_name: _, program_id } => {
+            Expression::InterfaceCast {
+                interface_name: _,
+                program_id,
+            } => {
                 // InterfaceCast is typically used in method call chains (IERC20(addr).transfer(...))
                 // and converted to CpiCall. If used standalone, just return the program_id.
                 self.generate_expression(program_id)
             }
-            Expression::TokenTransfer { from, to, authority, amount } => {
+            Expression::TokenTransfer {
+                from,
+                to,
+                authority,
+                amount,
+            } => {
                 let from_str = self.generate_expression(from)?;
                 let to_str = self.generate_expression(to)?;
                 let auth_str = self.generate_expression(authority)?;
@@ -807,10 +840,18 @@ fn {}({}) -> {} {{
             let cpi_program = ctx.accounts.token_program.to_account_info();
             anchor_spl::token::transfer(CpiContext::new(cpi_program, cpi_accounts), {} as u64)?
         }}"#,
-                    to_snake_case(&from_str), to_snake_case(&to_str), to_snake_case(&auth_str), amt_str
+                    to_snake_case(&from_str),
+                    to_snake_case(&to_str),
+                    to_snake_case(&auth_str),
+                    amt_str
                 ))
             }
-            Expression::TokenMint { mint, to, authority, amount } => {
+            Expression::TokenMint {
+                mint,
+                to,
+                authority,
+                amount,
+            } => {
                 let mint_str = self.generate_expression(mint)?;
                 let to_str = self.generate_expression(to)?;
                 let auth_str = self.generate_expression(authority)?;
@@ -825,10 +866,18 @@ fn {}({}) -> {} {{
             let cpi_program = ctx.accounts.token_program.to_account_info();
             anchor_spl::token::mint_to(CpiContext::new(cpi_program, cpi_accounts), {} as u64)?
         }}"#,
-                    to_snake_case(&mint_str), to_snake_case(&to_str), to_snake_case(&auth_str), amt_str
+                    to_snake_case(&mint_str),
+                    to_snake_case(&to_str),
+                    to_snake_case(&auth_str),
+                    amt_str
                 ))
             }
-            Expression::TokenBurn { from, mint, authority, amount } => {
+            Expression::TokenBurn {
+                from,
+                mint,
+                authority,
+                amount,
+            } => {
                 let from_str = self.generate_expression(from)?;
                 let mint_str = self.generate_expression(mint)?;
                 let auth_str = self.generate_expression(authority)?;
@@ -843,7 +892,10 @@ fn {}({}) -> {} {{
             let cpi_program = ctx.accounts.token_program.to_account_info();
             anchor_spl::token::burn(CpiContext::new(cpi_program, cpi_accounts), {} as u64)?
         }}"#,
-                    to_snake_case(&from_str), to_snake_case(&mint_str), to_snake_case(&auth_str), amt_str
+                    to_snake_case(&from_str),
+                    to_snake_case(&mint_str),
+                    to_snake_case(&auth_str),
+                    amt_str
                 ))
             }
             Expression::SolTransfer { to, amount } => {
@@ -908,7 +960,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert!({})", c))
                 }
             }
-            Expression::AssertEq { left, right, message } => {
+            Expression::AssertEq {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -917,7 +973,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert_eq!({}, {})", l, r))
                 }
             }
-            Expression::AssertNe { left, right, message } => {
+            Expression::AssertNe {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -926,7 +986,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert_ne!({}, {})", l, r))
                 }
             }
-            Expression::AssertGt { left, right, message } => {
+            Expression::AssertGt {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -935,7 +999,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert!({} > {})", l, r))
                 }
             }
-            Expression::AssertGe { left, right, message } => {
+            Expression::AssertGe {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -944,7 +1012,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert!({} >= {})", l, r))
                 }
             }
-            Expression::AssertLt { left, right, message } => {
+            Expression::AssertLt {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -953,7 +1025,11 @@ fn {}({}) -> {} {{
                     Ok(format!("assert!({} < {})", l, r))
                 }
             }
-            Expression::AssertLe { left, right, message } => {
+            Expression::AssertLe {
+                left,
+                right,
+                message,
+            } => {
                 let l = self.generate_expression(left)?;
                 let r = self.generate_expression(right)?;
                 if let Some(msg) = message {
@@ -1010,10 +1086,11 @@ use anchor_lang::prelude::*;
 
         // Generate user-defined structs (before state account so they can be used as field types)
         for struct_def in &program.structs {
+            content.push_str("#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]\n");
             content.push_str(&format!(
-                "#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]\n"
+                "pub struct {} {{\n",
+                to_pascal_case(&struct_def.name)
             ));
-            content.push_str(&format!("pub struct {} {{\n", to_pascal_case(&struct_def.name)));
             for field in &struct_def.fields {
                 content.push_str(&format!(
                     "    pub {}: {},\n",
@@ -1027,7 +1104,10 @@ use anchor_lang::prelude::*;
         // Generate state account struct with InitSpace derive for automatic space calculation
         content.push_str("#[account]\n");
         content.push_str("#[derive(InitSpace)]\n");
-        content.push_str(&format!("pub struct {}State {{\n", to_pascal_case(&program.name)));
+        content.push_str(&format!(
+            "pub struct {}State {{\n",
+            to_pascal_case(&program.name)
+        ));
 
         for field in &program.state.fields {
             // Add #[max_len] attribute for dynamic types (String, Vec, etc.)
@@ -1065,13 +1145,19 @@ use anchor_lang::prelude::*;
             if let Some(attr) = key_max_len {
                 content.push_str(&format!("    {}\n", attr));
             }
-            content.push_str(&format!("    /// The key for this entry\n    pub key: {},\n", key_type));
+            content.push_str(&format!(
+                "    /// The key for this entry\n    pub key: {},\n",
+                key_type
+            ));
 
             // Value field with optional max_len
             if let Some(attr) = value_max_len {
                 content.push_str(&format!("    {}\n", attr));
             }
-            content.push_str(&format!("    /// The value stored at this key\n    pub value: {},\n", value_type));
+            content.push_str(&format!(
+                "    /// The value stored at this key\n    pub value: {},\n",
+                value_type
+            ));
 
             content.push_str("}\n\n");
         }
@@ -1107,11 +1193,14 @@ use anchor_lang::prelude::*;
 
     fn generate_instructions_rs(&self, program: &SolanaProgram) -> Result<String, CodegenError> {
         // Check if any public instruction uses token program
-        let uses_token = program.instructions.iter()
+        let uses_token = program
+            .instructions
+            .iter()
             .filter(|i| i.is_public)
             .any(|i| i.uses_token_program);
 
-        let mut content = String::from("//! Instruction account contexts\n\nuse anchor_lang::prelude::*;\n");
+        let mut content =
+            String::from("//! Instruction account contexts\n\nuse anchor_lang::prelude::*;\n");
 
         if uses_token {
             content.push_str("use anchor_spl::token::Token;\n");
@@ -1173,10 +1262,7 @@ use anchor_lang::prelude::*;
                 state_name, state_name
             ));
         } else if instruction.is_view {
-            content.push_str(&format!(
-                "    pub state: Account<'info, {}>,\n",
-                state_name
-            ));
+            content.push_str(&format!("    pub state: Account<'info, {}>,\n", state_name));
         } else if instruction.closes_state {
             // Selfdestruct: close the state account and send rent to signer
             content.push_str(&format!(
@@ -1215,7 +1301,11 @@ use anchor_lang::prelude::*;
                 .iter()
                 .map(|k| self.generate_key_seed_expr(k))
                 .collect::<Result<Vec<_>, _>>()?;
-            let seeds_str = key_seeds.iter().map(|s| format!("{}.as_ref()", s)).collect::<Vec<_>>().join(", ");
+            let seeds_str = key_seeds
+                .iter()
+                .map(|s| format!("{}.as_ref()", s))
+                .collect::<Vec<_>>()
+                .join(", ");
 
             if access.should_close {
                 // Close the PDA and return lamports to signer
@@ -1271,7 +1361,9 @@ use anchor_lang::prelude::*;
         // Recipient account (needed for SOL transfers)
         // The recipient must be passed as an UncheckedAccount to receive SOL
         if instruction.uses_sol_transfer {
-            content.push_str("    /// CHECK: Recipient account for SOL transfer, validated by the caller\n");
+            content.push_str(
+                "    /// CHECK: Recipient account for SOL transfer, validated by the caller\n",
+            );
             content.push_str("    #[account(mut)]\n");
             content.push_str("    pub recipient: UncheckedAccount<'info>,\n");
         }
@@ -1368,7 +1460,8 @@ pub enum CustomError {
         for error in &program.errors {
             content.push_str(&format!(
                 "    #[msg(\"{}\")]\n    {},\n",
-                error.name, to_pascal_case(&error.name)
+                error.name,
+                to_pascal_case(&error.name)
             ));
         }
 
@@ -1434,7 +1527,9 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
         let name = to_snake_case(&program.name);
         let uses_token = program.instructions.iter().any(|i| i.uses_token_program);
 
-        let mut deps = String::from("anchor-lang = { version = \"0.32.0\", features = [\"init-if-needed\"] }\n");
+        let mut deps = String::from(
+            "anchor-lang = { version = \"0.32.0\", features = [\"init-if-needed\"] }\n",
+        );
         if uses_token {
             deps.push_str("anchor-spl = \"0.32.0\"\n");
         }
@@ -1535,7 +1630,8 @@ default = []
         let _snake_name = to_snake_case(name);
 
         // Count public functions
-        let public_fns: Vec<&str> = program.instructions
+        let public_fns: Vec<&str> = program
+            .instructions
             .iter()
             .filter(|i| i.is_public)
             .map(|i| i.name.as_str())
@@ -1661,18 +1757,8 @@ dist/
 *.d.ts
 *.map
 !anchor.js
-"#.to_string()
-    }
-}
-
-impl Default for RustGenerator {
-    fn default() -> Self {
-        Self {
-            events: Vec::new(),
-            signer_params: std::collections::HashSet::new(),
-            internal_functions: std::collections::HashSet::new(),
-            in_helper_function: false,
-        }
+"#
+        .to_string()
     }
 }
 

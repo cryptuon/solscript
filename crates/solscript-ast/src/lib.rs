@@ -252,7 +252,7 @@ pub struct FnDef {
     pub state_mutability: Vec<StateMutability>,
     pub modifiers: Vec<ModifierInvocation>,
     pub return_params: Vec<ReturnParam>,
-    pub body: Option<Block>,  // None for abstract functions
+    pub body: Option<Block>, // None for abstract functions
     pub span: Span,
 }
 
@@ -340,7 +340,7 @@ pub enum Stmt {
     Revert(RevertStmt),
     Delete(DeleteStmt),
     Selfdestruct(SelfdestructStmt),
-    Placeholder(Span),  // _ in modifiers
+    Placeholder(Span), // _ in modifiers
     Expr(ExprStmt),
 }
 
@@ -504,7 +504,7 @@ pub enum BinaryOp {
     Mul,
     Div,
     Rem,
-    Exp,  // **
+    Exp, // **
     // Comparison
     Eq,
     Ne,
@@ -532,13 +532,13 @@ pub struct UnaryExpr {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UnaryOp {
-    Not,      // !
-    Neg,      // -
-    BitNot,   // ~
-    PreInc,   // ++x
-    PreDec,   // --x
-    PostInc,  // x++
-    PostDec,  // x--
+    Not,     // !
+    Neg,     // -
+    BitNot,  // ~
+    PreInc,  // ++x
+    PreDec,  // --x
+    PostInc, // x++
+    PostDec, // x--
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

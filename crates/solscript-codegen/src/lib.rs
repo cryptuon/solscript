@@ -119,10 +119,9 @@ mod tests {
     use super::*;
 
     fn parse_and_generate(source: &str) -> Result<GeneratedProject, String> {
-        let program = solscript_parser::parse(source)
-            .map_err(|e| format!("Parse error: {:?}", e))?;
-        generate(&program)
-            .map_err(|e| format!("Codegen error: {:?}", e))
+        let program =
+            solscript_parser::parse(source).map_err(|e| format!("Parse error: {:?}", e))?;
+        generate(&program).map_err(|e| format!("Codegen error: {:?}", e))
     }
 
     #[test]
@@ -903,13 +902,17 @@ mod tests {
         // Check that nested mapping seeds contain both keys
         // In approve: msg.sender and spender
         assert!(
-            result.instructions_rs.contains("signer.key().as_ref(), spender.as_ref()"),
+            result
+                .instructions_rs
+                .contains("signer.key().as_ref(), spender.as_ref()"),
             "Approve should use signer and spender as seeds"
         );
 
         // In allowance: owner and spender
         assert!(
-            result.instructions_rs.contains("owner.as_ref(), spender.as_ref()"),
+            result
+                .instructions_rs
+                .contains("owner.as_ref(), spender.as_ref()"),
             "Allowance should use owner and spender as seeds"
         );
     }
@@ -919,8 +922,8 @@ mod tests {
     #[test]
     #[ignore] // Requires Anchor installed, slower test
     fn anchor_build_integration() {
-        use std::process::Command;
         use std::fs;
+        use std::process::Command;
 
         let source = r#"
             contract Token {
@@ -970,7 +973,9 @@ mod tests {
         fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
 
         // Write project
-        project.write_to_dir(&temp_dir).expect("Failed to write project");
+        project
+            .write_to_dir(&temp_dir)
+            .expect("Failed to write project");
 
         // Run cargo check on the generated program
         let program_dir = temp_dir.join("programs").join("solscript_program");
@@ -1022,7 +1027,9 @@ mod tests {
 
         // Check struct is generated with correct derives
         assert!(
-            result.state_rs.contains("#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]"),
+            result
+                .state_rs
+                .contains("#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]"),
             "Struct should have Anchor derives"
         );
         assert!(
@@ -1177,13 +1184,16 @@ mod tests {
 
         // Donate (payable) should have system_program
         assert!(
-            result.instructions_rs.contains("pub system_program: Program<'info, System>"),
+            result
+                .instructions_rs
+                .contains("pub system_program: Program<'info, System>"),
             "Payable function should have system_program"
         );
 
         // View function should NOT have system_program (no writes)
         // Check that GetBalance doesn't have system_program
-        let get_balance_section = result.instructions_rs
+        let get_balance_section = result
+            .instructions_rs
             .split("pub struct GetBalance")
             .nth(1)
             .and_then(|s| s.split("pub struct").next())
@@ -1213,13 +1223,17 @@ mod tests {
 
         // Token program should be included in context
         assert!(
-            result.instructions_rs.contains("pub token_program: Program<'info, Token>"),
+            result
+                .instructions_rs
+                .contains("pub token_program: Program<'info, Token>"),
             "Token operations should include token_program account"
         );
 
         // anchor_spl import should be present
         assert!(
-            result.instructions_rs.contains("use anchor_spl::token::Token"),
+            result
+                .instructions_rs
+                .contains("use anchor_spl::token::Token"),
             "Should import Token from anchor_spl"
         );
 
@@ -1258,7 +1272,9 @@ mod tests {
 
         // Additional signer should be in context
         assert!(
-            result.instructions_rs.contains("pub approver: Signer<'info>"),
+            result
+                .instructions_rs
+                .contains("pub approver: Signer<'info>"),
             "Signer param should be in context as Signer<'info>"
         );
 
@@ -1303,7 +1319,9 @@ mod tests {
         );
 
         assert!(
-            result.lib_rs.contains("anchor_lang::solana_program::program::invoke"),
+            result
+                .lib_rs
+                .contains("anchor_lang::solana_program::program::invoke"),
             "CPI invoke should be generated"
         );
     }

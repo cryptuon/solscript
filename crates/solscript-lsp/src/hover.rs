@@ -1,7 +1,7 @@
 //! Hover information for the language server
 
-use tower_lsp::lsp_types::*;
 use crate::Document;
+use tower_lsp::lsp_types::*;
 
 /// Get hover information at a position
 pub fn get_hover(doc: &Document, position: Position) -> Option<Hover> {
@@ -108,12 +108,18 @@ fn get_type_hover(word: &str) -> Option<Hover> {
         "uint8" => ("8-bit unsigned integer", "Range: 0 to 255"),
         "uint16" => ("16-bit unsigned integer", "Range: 0 to 65,535"),
         "uint32" => ("32-bit unsigned integer", "Range: 0 to 4,294,967,295"),
-        "uint64" => ("64-bit unsigned integer", "Range: 0 to 18,446,744,073,709,551,615"),
+        "uint64" => (
+            "64-bit unsigned integer",
+            "Range: 0 to 18,446,744,073,709,551,615",
+        ),
         "uint128" => ("128-bit unsigned integer", "Very large positive numbers"),
         "uint256" => ("256-bit unsigned integer", "Maximum precision integer"),
         "int8" => ("8-bit signed integer", "Range: -128 to 127"),
         "int16" => ("16-bit signed integer", "Range: -32,768 to 32,767"),
-        "int32" => ("32-bit signed integer", "Range: -2,147,483,648 to 2,147,483,647"),
+        "int32" => (
+            "32-bit signed integer",
+            "Range: -2,147,483,648 to 2,147,483,647",
+        ),
         "int64" => ("64-bit signed integer", "Large signed numbers"),
         "int128" => ("128-bit signed integer", "Very large signed numbers"),
         "int256" => ("256-bit signed integer", "Maximum precision signed integer"),
@@ -122,7 +128,10 @@ fn get_type_hover(word: &str) -> Option<Hover> {
         "address" => ("Address type", "32-byte Solana public key (Pubkey)"),
         "bytes" => ("Dynamic byte array", "Variable-length byte sequence"),
         "bytes32" => ("Fixed 32-byte array", "32-byte fixed-length array"),
-        "signer" => ("Signer type", "An address parameter that must sign the transaction"),
+        "signer" => (
+            "Signer type",
+            "An address parameter that must sign the transaction",
+        ),
         _ => return None,
     };
 
@@ -209,14 +218,21 @@ fn get_symbol_hover(ast: &solscript_ast::Program, word: &str) -> Option<Hover> {
                         desc.push_str(&format!(" is {}", bases.join(", ")));
                     }
 
-                    let state_count = c.members.iter()
+                    let state_count = c
+                        .members
+                        .iter()
                         .filter(|m| matches!(m, solscript_ast::ContractMember::StateVar(_)))
                         .count();
-                    let fn_count = c.members.iter()
+                    let fn_count = c
+                        .members
+                        .iter()
                         .filter(|m| matches!(m, solscript_ast::ContractMember::Function(_)))
                         .count();
 
-                    desc.push_str(&format!("\n\n{} state variable(s), {} function(s)", state_count, fn_count));
+                    desc.push_str(&format!(
+                        "\n\n{} state variable(s), {} function(s)",
+                        state_count, fn_count
+                    ));
 
                     return Some(Hover {
                         contents: HoverContents::Markup(MarkupContent {
@@ -231,31 +247,44 @@ fn get_symbol_hover(ast: &solscript_ast::Program, word: &str) -> Option<Hover> {
                 for member in &c.members {
                     match member {
                         solscript_ast::ContractMember::StateVar(v) if v.name.name == word => {
-                            let vis = v.visibility.as_ref()
+                            let vis = v
+                                .visibility
+                                .as_ref()
                                 .map(|v| format!("{:?}", v).to_lowercase())
                                 .unwrap_or_default();
                             return Some(Hover {
                                 contents: HoverContents::Markup(MarkupContent {
                                     kind: MarkupKind::Markdown,
-                                    value: format!("**{}** `{} {}`\n\nState variable in contract `{}`",
-                                        word, v.ty.name(), vis, c.name.name),
+                                    value: format!(
+                                        "**{}** `{} {}`\n\nState variable in contract `{}`",
+                                        word,
+                                        v.ty.name(),
+                                        vis,
+                                        c.name.name
+                                    ),
                                 }),
                                 range: None,
                             });
                         }
                         solscript_ast::ContractMember::Function(f) if f.name.name == word => {
-                            let params: Vec<_> = f.params.iter()
+                            let params: Vec<_> = f
+                                .params
+                                .iter()
                                 .map(|p| format!("{} {}", p.ty.name(), p.name.name))
                                 .collect();
                             let returns = if f.return_params.is_empty() {
                                 String::new()
                             } else {
-                                let ret_types: Vec<_> = f.return_params.iter()
+                                let ret_types: Vec<_> = f
+                                    .return_params
+                                    .iter()
                                     .map(|p| p.ty.name().to_string())
                                     .collect();
                                 format!(" returns ({})", ret_types.join(", "))
                             };
-                            let vis = f.visibility.as_ref()
+                            let vis = f
+                                .visibility
+                                .as_ref()
                                 .map(|v| format!(" {:?}", v).to_lowercase())
                                 .unwrap_or_default();
 
@@ -273,31 +302,41 @@ fn get_symbol_hover(ast: &solscript_ast::Program, word: &str) -> Option<Hover> {
                 }
             }
             solscript_ast::Item::Struct(s) if s.name.name == word => {
-                let fields: Vec<_> = s.fields.iter()
+                let fields: Vec<_> = s
+                    .fields
+                    .iter()
                     .map(|f| format!("    {} {};", f.ty.name(), f.name.name))
                     .collect();
                 return Some(Hover {
                     contents: HoverContents::Markup(MarkupContent {
                         kind: MarkupKind::Markdown,
-                        value: format!("```solscript\nstruct {} {{\n{}\n}}\n```", word, fields.join("\n")),
+                        value: format!(
+                            "```solscript\nstruct {} {{\n{}\n}}\n```",
+                            word,
+                            fields.join("\n")
+                        ),
                     }),
                     range: None,
                 });
             }
             solscript_ast::Item::Enum(e) if e.name.name == word => {
-                let variants: Vec<_> = e.variants.iter()
-                    .map(|v| v.name.name.to_string())
-                    .collect();
+                let variants: Vec<_> = e.variants.iter().map(|v| v.name.name.to_string()).collect();
                 return Some(Hover {
                     contents: HoverContents::Markup(MarkupContent {
                         kind: MarkupKind::Markdown,
-                        value: format!("```solscript\nenum {} {{ {} }}\n```", word, variants.join(", ")),
+                        value: format!(
+                            "```solscript\nenum {} {{ {} }}\n```",
+                            word,
+                            variants.join(", ")
+                        ),
                     }),
                     range: None,
                 });
             }
             solscript_ast::Item::Event(e) if e.name.name == word => {
-                let params: Vec<_> = e.params.iter()
+                let params: Vec<_> = e
+                    .params
+                    .iter()
                     .map(|p| {
                         let indexed = if p.indexed { "indexed " } else { "" };
                         format!("{} {}{}", p.ty.name(), indexed, p.name.name)
@@ -312,7 +351,9 @@ fn get_symbol_hover(ast: &solscript_ast::Program, word: &str) -> Option<Hover> {
                 });
             }
             solscript_ast::Item::Error(e) if e.name.name == word => {
-                let params: Vec<_> = e.params.iter()
+                let params: Vec<_> = e
+                    .params
+                    .iter()
                     .map(|p| format!("{} {}", p.ty.name(), p.name.name))
                     .collect();
                 return Some(Hover {
