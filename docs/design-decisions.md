@@ -1,14 +1,8 @@
-# SolScript Specification Inconsistencies
+# Design Decisions
 
-**Status: ALL RESOLVED**
+Reference for resolved design decisions and naming conventions.
 
-This document tracked inconsistencies found across the documentation. All issues have been resolved.
-
----
-
-## Resolutions Applied
-
-### 1. Naming
+## Naming
 
 | Issue | Resolution |
 |-------|------------|
@@ -17,7 +11,7 @@ This document tracked inconsistencies found across the documentation. All issues
 | CLI command | Changed from `solanascript` to **`solscript`** |
 | Installation | Changed from npm to **`cargo install solscript`** |
 
-### 2. Syntax
+## Syntax
 
 | Issue | Resolution |
 |-------|------------|
@@ -27,7 +21,7 @@ This document tracked inconsistencies found across the documentation. All issues
 | Variable declarations | Use **`let`** (not `const`) |
 | Code blocks | All use **`solscript`** language tag |
 
-### 3. Types
+## Types
 
 | Issue | Resolution |
 |-------|------------|
@@ -35,7 +29,7 @@ This document tracked inconsistencies found across the documentation. All issues
 | Array syntax | Defined as **`[T; N]`** for fixed-size |
 | Tuple syntax | Defined as **`(T, U)`** |
 
-### 4. Imports
+## Imports
 
 | Issue | Resolution |
 |-------|------------|
@@ -46,7 +40,7 @@ This document tracked inconsistencies found across the documentation. All issues
 | Testing | Added **`@solana/testing`** |
 | Anchor | Added **`@solana/anchor`** and **`@anchor/*`** |
 
-### 5. Error Handling
+## Error Handling
 
 | Issue | Resolution |
 |-------|------------|
@@ -55,26 +49,14 @@ This document tracked inconsistencies found across the documentation. All issues
 | Pattern matching | **`match`** expression |
 | Custom errors | **`error` keyword** for definitions |
 
-### 6. Attributes
+## Attributes
 
 | Issue | Resolution |
 |-------|------------|
 | Decorators | Use **`@`** for Solana-specific (e.g., `@state`, `@public`) |
 | Attributes | Use **`#[]`** for Rust-like attributes (e.g., `#[derive]`, `#[test]`) |
 
-### 7. New Sections Added
-
-The following previously missing specifications were added:
-
-- **Section 10: Built-in Globals** - `tx`, `self`, `log()`, `assert()`
-- **Section 11: Enums** - Simple enums, enums with data, pattern matching
-- **Section 12: Closures and Iterators** - Lambda syntax, iterator methods
-- **Section 3.9: Low-Level Operations** - `@solana/low-level` module
-- **Section 3.10: Testing Framework** - `#[test]`, `#[should_fail]`, assertions
-
----
-
-## Summary of Conventions
+## Conventions
 
 ### Decorator vs Attribute Usage
 
@@ -109,6 +91,3 @@ fn functionName(param: Type): Result<ReturnType, Error> {
 }
 ```
 
----
-
-*Resolved: January 2, 2026*
