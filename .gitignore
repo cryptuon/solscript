@@ -1,6 +1,9 @@
 # Build artifacts
 /target/
 
+# Cargo lock file (library - let downstream regenerate)
+Cargo.lock
+
 # IDE
 .idea/
 .vscode/

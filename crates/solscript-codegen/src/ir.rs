@@ -246,7 +246,7 @@ pub enum Expression {
     Literal(Literal),
     Var(String),
     StateAccess(String), // Access to state field
-    /// Mapping access: mapping_name[key1][key2]... → ctx.accounts.{account_name}.value
+    /// Mapping access: `mapping_name[key1][key2]...` → `ctx.accounts.{account_name}.value`
     MappingAccess {
         mapping_name: String,
         /// All keys in order (outer to inner)

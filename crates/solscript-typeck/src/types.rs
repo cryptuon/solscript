@@ -19,7 +19,7 @@ pub enum Type {
     Never,
     /// A named type (struct, enum, contract, interface, etc.)
     Named(NamedType),
-    /// Fixed-size array type T[N]
+    /// Fixed-size array type `T[N]`
     Array(Box<Type>, u64),
     /// Dynamic array type T[]
     DynamicArray(Box<Type>),

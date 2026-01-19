@@ -241,7 +241,7 @@ token = "1.0.0"
 name = "test"
 
 [dependencies]
-token = { github = "solscript/token-lib", tag = "v1.0.0" }
+token = { github = "cryptuon/token-lib", tag = "v1.0.0" }
 "#;
 
         let config: Config = toml::from_str(toml_str).unwrap();
