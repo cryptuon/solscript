@@ -17,7 +17,7 @@ license = "MIT"
 repository = "https://github.com/cryptuon/solscript"
 homepage = "https://github.com/cryptuon/solscript"
 documentation = "https://docs.rs/solscript-cli"
-rust-version = "1.82"
+rust-version = "1.83"
 keywords = ["solana", "solidity", "blockchain", "smart-contracts", "compiler"]
 categories = ["compilers", "development-tools", "cryptography::cryptocurrencies"]
 

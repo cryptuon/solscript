@@ -6,7 +6,7 @@ This guide covers installing SolScript and its dependencies.
 
 Before installing SolScript, ensure you have:
 
-- **Rust** (1.82 or later) - [Install Rust](https://rustup.rs/)
+- **Rust** (1.83 or later) - [Install Rust](https://rustup.rs/)
 - **Solana CLI** - [Install Solana](https://docs.solana.com/cli/install-solana-cli-tools)
 - **Anchor** (optional, for Anchor mode) - [Install Anchor](https://www.anchor-lang.com/docs/installation)
 - **LLVM 18** (optional, for direct LLVM mode) - See below
