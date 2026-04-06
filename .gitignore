@@ -18,3 +18,9 @@ Thumbs.db
 vscode-extension/node_modules/
 vscode-extension/out/
 vscode-extension/*.vsix
+
+# Playground
+playground/frontend/node_modules/
+playground/frontend/dist/
+playground/frontend/src/wasm-pkg/
+playground/frontend/.vite/

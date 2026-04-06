@@ -8,6 +8,8 @@ members = [
     "crates/solscript-cli",
     "crates/solscript-lsp",
     "crates/solscript-bpf",
+    "playground/wasm",
+    "playground/backend",
 ]
 
 [workspace.package]

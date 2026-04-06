@@ -1,0 +1,26 @@
+[package]
+name = "solscript-playground"
+version = "0.1.0"
+edition = "2021"
+description = "Web backend for the SolScript Playground"
+
+[[bin]]
+name = "solscript-playground"
+path = "src/main.rs"
+
+[dependencies]
+solscript-parser = { path = "../../crates/solscript-parser" }
+solscript-typeck = { path = "../../crates/solscript-typeck" }
+solscript-codegen = { path = "../../crates/solscript-codegen" }
+
+axum = { version = "0.7", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["limit", "timeout"] }
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1", features = ["v4"] }
+base64 = "0.22"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+miette = { version = "7.0", default-features = false }
