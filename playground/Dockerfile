@@ -3,26 +3,24 @@ FROM rust:1.83-bookworm AS wasm-builder
 RUN cargo install wasm-pack
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
-COPY crates/ crates/
-COPY playground/wasm/ playground/wasm/
-RUN cd playground/wasm && wasm-pack build --target web --release --out-dir ../frontend/src/wasm-pkg
+COPY wasm/ wasm/
+RUN cd wasm && wasm-pack build --target web --release --out-dir ../frontend/src/wasm-pkg
 
 # Stage 2: Build Vue frontend
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
-COPY playground/frontend/package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci
-COPY playground/frontend/ ./
-COPY --from=wasm-builder /app/playground/frontend/src/wasm-pkg/ ./src/wasm-pkg/
+COPY frontend/ ./
+COPY --from=wasm-builder /app/frontend/src/wasm-pkg/ ./src/wasm-pkg/
 RUN npm run build
 
 # Stage 3: Build Axum backend
 FROM rust:1.83-bookworm AS backend-builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
-COPY crates/ crates/
-COPY playground/backend/ playground/backend/
-COPY playground/wasm/ playground/wasm/
+COPY wasm/ wasm/
+COPY backend/ backend/
 RUN cargo build --release -p solscript-playground
 
 # Stage 4: Runtime

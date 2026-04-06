@@ -8,15 +8,15 @@ description = "WASM bindings for the SolScript compiler"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-solscript-ast = { path = "../../crates/solscript-ast" }
-solscript-parser = { path = "../../crates/solscript-parser" }
-solscript-typeck = { path = "../../crates/solscript-typeck" }
-solscript-codegen = { path = "../../crates/solscript-codegen" }
+solscript-ast = { workspace = true }
+solscript-parser = { workspace = true }
+solscript-typeck = { workspace = true }
+solscript-codegen = { workspace = true }
 
 wasm-bindgen = "0.2"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-miette = { version = "7.0", default-features = false }
+serde = { workspace = true }
+serde_json = { workspace = true }
+miette = { workspace = true }
 
 [profile.release]
 opt-level = "s"

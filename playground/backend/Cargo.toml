@@ -9,18 +9,18 @@ name = "solscript-playground"
 path = "src/main.rs"
 
 [dependencies]
-solscript-parser = { path = "../../crates/solscript-parser" }
-solscript-typeck = { path = "../../crates/solscript-typeck" }
-solscript-codegen = { path = "../../crates/solscript-codegen" }
+solscript-parser = { workspace = true }
+solscript-typeck = { workspace = true }
+solscript-codegen = { workspace = true }
 
 axum = { version = "0.7", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["limit", "timeout"] }
 tower-http = { version = "0.6", features = ["fs", "cors"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-miette = { version = "7.0", default-features = false }
+miette = { workspace = true }
