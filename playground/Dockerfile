@@ -6,6 +6,7 @@ RUN cargo install wasm-pack --locked
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY wasm/ wasm/
+COPY backend/ backend/
 RUN cd wasm && wasm-pack build --target web --release --out-dir ../frontend/src/wasm-pkg
 
 # Stage 2: Build Vue frontend
