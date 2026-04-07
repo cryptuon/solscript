@@ -1,7 +1,7 @@
 # Build context is the repo root (set by captain-definition)
 
 # Stage 1: Build WASM
-FROM rust:1.86-bookworm AS wasm-builder
+FROM rust:1.88-bookworm AS wasm-builder
 RUN cargo install wasm-pack --locked
 WORKDIR /app
 COPY playground/Cargo.toml playground/Cargo.lock ./
@@ -18,7 +18,7 @@ COPY --from=wasm-builder /app/frontend/src/wasm-pkg/ ./src/wasm-pkg/
 RUN npm run build
 
 # Stage 3: Build Axum backend
-FROM rust:1.86-bookworm AS backend-builder
+FROM rust:1.88-bookworm AS backend-builder
 WORKDIR /app
 COPY playground/Cargo.toml playground/Cargo.lock ./
 COPY playground/wasm/ wasm/
@@ -42,7 +42,7 @@ RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)" && \
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
 
 # Install Rust toolchain for cargo-build-sbf
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.86.0
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Copy backend binary
