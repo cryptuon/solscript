@@ -1,13 +1,15 @@
 # Build context is playground/ directory
+# Deploy: git archive --format=tar.gz -o /tmp/deploy.tar.gz HEAD:playground
 
-# Stage 1: Build WASM
-FROM rust:1.88-bookworm AS wasm-builder
+# Stage 1: Build all Rust artifacts (WASM + backend binary)
+FROM rust:1.88-bookworm AS rust-builder
 RUN cargo install wasm-pack --locked
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY wasm/ wasm/
 COPY backend/ backend/
-RUN cd wasm && wasm-pack build --target web --release --out-dir ../frontend/src/wasm-pkg
+RUN cd wasm && wasm-pack build --target web --release --out-dir /app/wasm-pkg
+RUN cargo build --release -p solscript-playground
 
 # Stage 2: Build Vue frontend
 FROM node:20-alpine AS frontend-builder
@@ -15,47 +17,17 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-COPY --from=wasm-builder /app/frontend/src/wasm-pkg/ ./src/wasm-pkg/
+COPY --from=rust-builder /app/wasm-pkg/ ./src/wasm-pkg/
 RUN npm run build
 
-# Stage 3: Build Axum backend
-FROM rust:1.88-bookworm AS backend-builder
-WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
-COPY wasm/ wasm/
-COPY backend/ backend/
-RUN cargo build --release -p solscript-playground
-
-# Stage 4: Runtime
-FROM debian:bookworm-slim AS runtime
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Solana CLI
-RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)" && \
-    echo 'export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"' >> /root/.bashrc
-ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
-
-# Install Rust toolchain for cargo-build-sbf
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88.0
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Copy backend binary
-COPY --from=backend-builder /app/target/release/solscript-playground /usr/local/bin/
-
-# Copy frontend static files
+# Stage 3: Runtime (lean — no Solana toolchain yet)
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=rust-builder /app/target/release/solscript-playground /usr/local/bin/
 COPY --from=frontend-builder /app/dist/ /app/static/
 
 ENV STATIC_DIR=/app/static
 ENV PORT=3000
 ENV RUST_LOG=info
-
 EXPOSE 3000
-
 CMD ["solscript-playground"]
