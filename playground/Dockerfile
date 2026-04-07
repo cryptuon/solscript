@@ -2,7 +2,7 @@
 
 # Stage 1: Build WASM
 FROM rust:1.86-bookworm AS wasm-builder
-RUN cargo install wasm-pack
+RUN cargo install wasm-pack --locked
 WORKDIR /app
 COPY playground/Cargo.toml playground/Cargo.lock ./
 COPY playground/wasm/ wasm/
