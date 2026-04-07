@@ -1,28 +1,28 @@
-# Build context is the repo root (set by captain-definition)
+# Build context is playground/ directory
 
 # Stage 1: Build WASM
 FROM rust:1.88-bookworm AS wasm-builder
 RUN cargo install wasm-pack --locked
 WORKDIR /app
-COPY playground/Cargo.toml playground/Cargo.lock ./
-COPY playground/wasm/ wasm/
+COPY Cargo.toml Cargo.lock ./
+COPY wasm/ wasm/
 RUN cd wasm && wasm-pack build --target web --release --out-dir ../frontend/src/wasm-pkg
 
 # Stage 2: Build Vue frontend
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
-COPY playground/frontend/package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci
-COPY playground/frontend/ ./
+COPY frontend/ ./
 COPY --from=wasm-builder /app/frontend/src/wasm-pkg/ ./src/wasm-pkg/
 RUN npm run build
 
 # Stage 3: Build Axum backend
 FROM rust:1.88-bookworm AS backend-builder
 WORKDIR /app
-COPY playground/Cargo.toml playground/Cargo.lock ./
-COPY playground/wasm/ wasm/
-COPY playground/backend/ backend/
+COPY Cargo.toml Cargo.lock ./
+COPY wasm/ wasm/
+COPY backend/ backend/
 RUN cargo build --release -p solscript-playground
 
 # Stage 4: Runtime
