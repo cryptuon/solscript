@@ -21,7 +21,7 @@ COPY --from=rust-builder /app/wasm-pkg/ ./src/wasm-pkg/
 RUN npm run build
 
 # Stage 3: Build Astro site
-FROM node:20-alpine AS astro-builder
+FROM node:22-alpine AS astro-builder
 WORKDIR /app
 COPY website/package*.json ./
 RUN npm ci
