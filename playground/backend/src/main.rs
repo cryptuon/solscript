@@ -16,17 +16,23 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env().add_directive("info".parse().unwrap()))
         .init();
 
-    let static_dir =
-        std::env::var("STATIC_DIR").unwrap_or_else(|_| "../frontend/dist".to_string());
+    let playground_dir =
+        std::env::var("PLAYGROUND_DIR").unwrap_or_else(|_| "../frontend/dist".to_string());
+    let astro_dir =
+        std::env::var("ASTRO_DIR").unwrap_or_else(|_| "../../website/dist".to_string());
 
     let api_routes = Router::new()
         .route("/api/build", post(routes::build))
         .route("/api/health", get(routes::health));
 
-    let spa_fallback = ServeFile::new(format!("{}/index.html", static_dir));
+    let spa_fallback = ServeFile::new(format!("{}/index.html", playground_dir));
+    let playground_service = ServeDir::new(&playground_dir).fallback(spa_fallback);
+
+    let astro_service = ServeDir::new(&astro_dir);
 
     let app = api_routes
-        .fallback_service(ServeDir::new(&static_dir).fallback(spa_fallback))
+        .nest_service("/playground", playground_service)
+        .fallback_service(astro_service)
         .layer(CorsLayer::permissive());
 
     let port: u16 = std::env::var("PORT")

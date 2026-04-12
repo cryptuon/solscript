@@ -1,0 +1,217 @@
+---
+import Base from '@/layouts/Base.astro';
+import CodeBlock from '@/components/CodeBlock.astro';
+
+const faqs = [
+  {
+    question: 'What is the difference between SolScript and Anchor?',
+    answer: 'SolScript lets you write Solana contracts in Solidity syntax, then compiles them to Anchor/Rust code. Anchor requires writing Rust directly. SolScript is ideal for developers coming from Ethereum who want to build on Solana without learning Rust.',
+  },
+  {
+    question: 'Is SolScript as performant as Anchor?',
+    answer: 'Yes. SolScript generates standard Anchor/Rust code, so the compiled output has identical performance. The generated code is auditable and can be modified before deployment.',
+  },
+  {
+    question: 'Can I use SolScript with existing Anchor projects?',
+    answer: 'SolScript generates standalone Anchor programs. You can use the generated Rust code alongside existing Anchor projects, or integrate SolScript-compiled programs with Anchor frontends using standard Solana SDKs.',
+  },
+  {
+    question: 'Do I need to know Rust to use SolScript?',
+    answer: 'No. SolScript handles the Solidity-to-Rust compilation automatically. However, understanding the generated Anchor code is helpful for advanced debugging and optimization.',
+  },
+  {
+    question: 'Which should I choose for a new Solana project?',
+    answer: 'Choose SolScript if your team has Solidity experience and wants rapid development. Choose Anchor directly if your team knows Rust and wants full control over the program code.',
+  },
+];
+
+const solscriptExample = `contract Counter {
+    uint256 public count;
+    address public owner;
+
+    event Incremented(address by, uint256 newValue);
+    error Unauthorized();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function increment() public {
+        count += 1;
+        emit Incremented(msg.sender, count);
+    }
+
+    function reset() public onlyOwner {
+        count = 0;
+    }
+}`;
+
+const anchorExample = `use anchor_lang::prelude::*;
+
+declare_id!("...");
+
+#[program]
+pub mod counter {
+    use super::*;
+
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        counter.count = 0;
+        counter.owner = ctx.accounts.signer.key();
+        Ok(())
+    }
+
+    pub fn increment(ctx: Context<Increment>) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        counter.count += 1;
+        emit!(Incremented {
+            by: ctx.accounts.signer.key(),
+            new_value: counter.count,
+        });
+        Ok(())
+    }
+
+    pub fn reset(ctx: Context<Reset>) -> Result<()> {
+        let counter = &mut ctx.accounts.counter;
+        require!(counter.owner == ctx.accounts.signer.key(),
+            CounterError::Unauthorized);
+        counter.count = 0;
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(init, payer = signer, space = 8 + 8 + 32)]
+    pub counter: Account<'info, Counter>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+// ... more account structs, events, errors`;
+---
+
+<Base
+  title="SolScript vs Anchor: Solidity vs Rust for Solana Development"
+  description="Compare SolScript (Solidity syntax) and Anchor (Rust) for Solana smart contract development. Side-by-side code examples, feature comparison, and guidance on choosing the right tool."
+  tags={['solscript vs anchor', 'solidity vs rust solana', 'solana development tools', 'anchor alternative', 'solidity on solana']}
+  jsonLdType="comparison"
+  jsonLdData={{ faqs }}
+  breadcrumbs={[
+    { name: 'Home', url: '/' },
+    { name: 'Compare', url: '/compare/solidity-vs-anchor' },
+    { name: 'SolScript vs Anchor', url: '/compare/solidity-vs-anchor' },
+  ]}
+>
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-12">
+      <h1 class="text-4xl font-bold text-white leading-tight">SolScript vs Anchor: Solidity vs Rust for Solana</h1>
+      <p class="mt-4 text-lg text-text-muted">SolScript and Anchor are both tools for building Solana programs. SolScript uses Solidity syntax and compiles to Anchor/Rust code. Anchor is the native Rust framework. Here's how they compare.</p>
+    </header>
+
+    <!-- Key Takeaways -->
+    <div class="rounded-xl border border-primary/30 bg-primary/5 p-6 mb-12">
+      <h2 class="text-lg font-semibold text-white mb-3">Key Takeaways</h2>
+      <ul class="space-y-2 text-text-muted">
+        <li><strong class="text-white">SolScript</strong> is best for Ethereum developers who want to build on Solana using familiar Solidity syntax.</li>
+        <li><strong class="text-white">Anchor</strong> is best for Rust developers who want full control over their Solana programs.</li>
+        <li>SolScript <strong class="text-white">generates</strong> Anchor code, so the output is fully compatible and equally performant.</li>
+        <li>SolScript handles PDA derivation, account validation, and boilerplate automatically.</li>
+      </ul>
+    </div>
+
+    <!-- Comparison Table -->
+    <h2 class="text-2xl font-bold text-white mb-6">Feature Comparison</h2>
+    <div class="overflow-x-auto mb-12">
+      <table class="w-full border-collapse rounded-xl overflow-hidden">
+        <thead>
+          <tr class="bg-surface-light">
+            <th class="text-left p-4 text-white font-semibold">Feature</th>
+            <th class="text-center p-4 text-primary font-semibold">SolScript</th>
+            <th class="text-center p-4 text-text-muted font-semibold">Anchor</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Language</td><td class="p-4 text-center text-white">Solidity</td><td class="p-4 text-center text-text-muted">Rust</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Learning curve (ETH devs)</td><td class="p-4 text-center text-secondary">Minimal</td><td class="p-4 text-center text-red-400">Steep</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Learning curve (Rust devs)</td><td class="p-4 text-center text-yellow-400">Medium</td><td class="p-4 text-center text-secondary">Minimal</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">PDA handling</td><td class="p-4 text-center text-white">Automatic</td><td class="p-4 text-center text-text-muted">Manual (macros)</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Account validation</td><td class="p-4 text-center text-white">Automatic</td><td class="p-4 text-center text-text-muted">Derive macros</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Boilerplate</td><td class="p-4 text-center text-secondary">Low</td><td class="p-4 text-center text-yellow-400">Medium</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Output</td><td class="p-4 text-center text-white">Rust/Anchor or BPF</td><td class="p-4 text-center text-text-muted">BPF</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Browser compiler</td><td class="p-4 text-center text-secondary">Yes (WASM)</td><td class="p-4 text-center text-red-400">No</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Ecosystem maturity</td><td class="p-4 text-center text-yellow-400">Beta</td><td class="p-4 text-center text-secondary">Production</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Auditable code</td><td class="p-4 text-center text-secondary">Yes (generated Rust)</td><td class="p-4 text-center text-secondary">Yes (native Rust)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Code Comparison -->
+    <h2 class="text-2xl font-bold text-white mb-6">Code Comparison: Counter Contract</h2>
+    <p class="text-text-muted mb-6">The same counter contract written in SolScript vs Anchor. Notice the difference in verbosity and boilerplate.</p>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-12">
+      <div>
+        <h3 class="text-sm font-semibold text-primary mb-2">SolScript (Solidity syntax)</h3>
+        <CodeBlock code={solscriptExample} title="counter.sol" />
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-text-muted mb-2">Anchor (Rust)</h3>
+        <CodeBlock code={anchorExample} title="counter.rs" />
+      </div>
+    </div>
+
+    <!-- When to Choose -->
+    <h2 class="text-2xl font-bold text-white mb-6">When to Choose Each</h2>
+    <div class="grid md:grid-cols-2 gap-6 mb-12">
+      <div class="rounded-xl border border-primary/30 bg-surface p-6">
+        <h3 class="text-lg font-semibold text-primary mb-3">Choose SolScript When</h3>
+        <ul class="space-y-2 text-text-muted text-sm">
+          <li>Your team has Solidity/Ethereum experience</li>
+          <li>You want rapid prototyping with less boilerplate</li>
+          <li>You're migrating contracts from Ethereum to Solana</li>
+          <li>You want automatic PDA and account handling</li>
+          <li>You need a browser-based development environment</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-border bg-surface p-6">
+        <h3 class="text-lg font-semibold text-white mb-3">Choose Anchor When</h3>
+        <ul class="space-y-2 text-text-muted text-sm">
+          <li>Your team is proficient in Rust</li>
+          <li>You need the most mature Solana tooling</li>
+          <li>You want direct control over every aspect of the program</li>
+          <li>You're building complex DeFi protocols at scale</li>
+          <li>You need access to the full Anchor ecosystem</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <h2 class="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h2>
+    <div class="space-y-4 mb-12">
+      {faqs.map((faq) => (
+        <details class="group rounded-xl border border-border bg-surface overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer text-white font-medium hover:bg-surface-light transition-colors">
+            {faq.question}
+            <span class="text-text-muted group-open:rotate-180 transition-transform ml-4">▼</span>
+          </summary>
+          <div class="px-5 pb-5 text-text-muted leading-relaxed">
+            {faq.answer}
+          </div>
+        </details>
+      ))}
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center py-8">
+      <a href="/playground" class="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold text-lg transition-colors">
+        Try SolScript in the Playground
+      </a>
+    </div>
+  </div>
+</Base>

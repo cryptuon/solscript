@@ -1,0 +1,184 @@
+---
+import Base from '@/layouts/Base.astro';
+import CodeBlock from '@/components/CodeBlock.astro';
+
+const faqs = [
+  {
+    question: 'What is the difference between SolScript, Solang, and Neon EVM?',
+    answer: 'All three let you use Solidity on Solana, but they work differently. SolScript compiles Solidity to Anchor/Rust code with automatic PDA mapping and a browser playground. Solang compiles Solidity directly to Solana BPF bytecode using LLVM. Neon EVM runs a full Ethereum Virtual Machine on Solana, so existing Ethereum contracts work with minimal changes but run in an emulated environment.',
+  },
+  {
+    question: 'Which is the best Solidity compiler for Solana?',
+    answer: 'It depends on your needs. SolScript is best if you want readable Anchor output, automatic PDA handling, and a browser-based playground for rapid development. Solang is best if you want direct Solidity-to-BPF compilation with Hyperledger backing. Neon EVM is best if you need to deploy existing Ethereum contracts unchanged.',
+  },
+  {
+    question: 'Is Solang still maintained in 2026?',
+    answer: 'Solang is maintained by Hyperledger (Linux Foundation). It supports Solidity 0.8 syntax and integrates with Anchor. However, development pace has slowed compared to its early days. Check the Solang GitHub repository for the latest activity.',
+  },
+  {
+    question: 'Can I use Neon EVM for new Solana projects?',
+    answer: 'You can, but Neon EVM is primarily designed for porting existing Ethereum dApps to Solana. For new projects, native Solana development (via SolScript, Solang, or Anchor) gives you better performance and lower overhead since there is no EVM emulation layer.',
+  },
+  {
+    question: 'Does SolScript generate auditable code?',
+    answer: 'Yes. SolScript generates standard Rust/Anchor source code that you can read, modify, and audit before deployment. This is a key advantage over direct bytecode compilation — you can verify exactly what the compiler produced.',
+  },
+  {
+    question: 'Which tool has the lowest learning curve for Ethereum developers?',
+    answer: 'Neon EVM has the lowest learning curve since it runs Ethereum contracts almost unchanged. However, SolScript offers a better balance: familiar Solidity syntax with native Solana performance and no emulation overhead. Solang requires understanding Solana\'s account model differences from Ethereum.',
+  },
+  {
+    question: 'Can I try Solidity on Solana without installing anything?',
+    answer: 'Yes. SolScript offers a browser-based playground at solscript.cryptuon.com/playground with a WASM compiler that compiles Solidity-style code instantly in your browser. Neither Solang nor Neon EVM offer a comparable browser IDE — Solang requires local installation, and Neon EVM requires deploying to their network.',
+  },
+];
+---
+
+<Base
+  title="SolScript vs Solang vs Neon EVM: 3 Ways to Write Solidity on Solana"
+  description="Compare SolScript, Solang, and Neon EVM for writing Solidity smart contracts on Solana. Side-by-side feature comparison, architecture differences, and guidance on choosing the right tool."
+  tags={['solscript vs solang', 'solang alternative', 'neon evm comparison', 'solidity on solana', 'solana solidity compiler', 'solang vs neon evm', 'solidity to solana']}
+  jsonLdType="comparison"
+  jsonLdData={{ faqs }}
+  breadcrumbs={[
+    { name: 'Home', url: '/' },
+    { name: 'Compare', url: '/compare/solscript-vs-solang-vs-neon' },
+    { name: 'SolScript vs Solang vs Neon', url: '/compare/solscript-vs-solang-vs-neon' },
+  ]}
+>
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-12">
+      <h1 class="text-4xl font-bold text-white leading-tight">SolScript vs Solang vs Neon EVM: 3 Ways to Write Solidity on Solana</h1>
+      <p class="mt-4 text-lg text-text-muted">There are three tools that let Ethereum developers use Solidity on Solana: SolScript, Solang, and Neon EVM. Each takes a fundamentally different approach. This guide compares all three so you can choose the right one.</p>
+    </header>
+
+    <!-- TL;DR -->
+    <div class="rounded-xl border border-primary/30 bg-primary/5 p-6 mb-12">
+      <h2 class="text-lg font-semibold text-white mb-3">TL;DR</h2>
+      <ul class="space-y-2 text-text-muted">
+        <li><strong class="text-white">SolScript</strong> compiles Solidity to <strong class="text-white">readable Anchor/Rust code</strong>. Automatic PDA mapping, browser playground, auditable output. Best for new Solana projects.</li>
+        <li><strong class="text-white">Solang</strong> compiles Solidity to <strong class="text-white">BPF bytecode directly</strong> via LLVM. Hyperledger-backed, Solidity 0.8 compatible. Requires understanding Solana's account model.</li>
+        <li><strong class="text-white">Neon EVM</strong> runs a full <strong class="text-white">Ethereum Virtual Machine on Solana</strong>. Existing contracts work with minimal changes, but adds emulation overhead.</li>
+      </ul>
+    </div>
+
+    <!-- Architecture Comparison -->
+    <h2 class="text-2xl font-bold text-white mb-6">How Each Tool Works</h2>
+    <div class="space-y-6 mb-12">
+      <div class="rounded-xl border border-primary/30 bg-surface p-6">
+        <h3 class="text-lg font-semibold text-primary mb-2">SolScript: Solidity &rarr; Anchor/Rust &rarr; BPF</h3>
+        <p class="text-text-muted leading-relaxed">SolScript parses your Solidity code, performs type checking, and generates human-readable Rust/Anchor source code. Solidity <code class="text-primary bg-primary/10 px-1 rounded">mapping</code> types are automatically converted to Solana PDAs. The generated Anchor code is standard — you can inspect, modify, audit, and deploy it with existing Solana tools. SolScript also offers a direct LLVM-to-BPF mode for faster compilation.</p>
+        <div class="mt-3 font-mono text-sm text-text-muted">Solidity &rarr; AST &rarr; Type Check &rarr; <span class="text-primary">Rust/Anchor code</span> &rarr; BPF</div>
+      </div>
+
+      <div class="rounded-xl border border-border bg-surface p-6">
+        <h3 class="text-lg font-semibold text-white mb-2">Solang: Solidity &rarr; LLVM IR &rarr; BPF</h3>
+        <p class="text-text-muted leading-relaxed">Solang (by Hyperledger) is a Solidity compiler that uses LLVM to compile directly to Solana BPF bytecode. It supports Solidity 0.8 syntax with Solana-specific modifications. Solang doesn't abstract away Solana's account model — developers must understand the differences between EVM storage and Solana accounts. No intermediate Rust code is generated.</p>
+        <div class="mt-3 font-mono text-sm text-text-muted">Solidity &rarr; LLVM IR &rarr; <span class="text-white">BPF bytecode</span></div>
+      </div>
+
+      <div class="rounded-xl border border-border bg-surface p-6">
+        <h3 class="text-lg font-semibold text-white mb-2">Neon EVM: Full EVM Emulation on Solana</h3>
+        <p class="text-text-muted leading-relaxed">Neon EVM runs a complete Ethereum Virtual Machine as a Solana program. You deploy standard EVM bytecode — the same contracts you'd deploy to Ethereum — and Neon executes them on Solana's infrastructure. This means existing dApps work with minimal changes (just switch the RPC endpoint), but the emulation layer adds overhead.</p>
+        <div class="mt-3 font-mono text-sm text-text-muted">Solidity &rarr; EVM bytecode &rarr; <span class="text-white">Neon EVM (emulated on Solana)</span></div>
+      </div>
+    </div>
+
+    <!-- Feature Comparison Table -->
+    <h2 class="text-2xl font-bold text-white mb-6">Feature Comparison</h2>
+    <div class="overflow-x-auto mb-12">
+      <table class="w-full border-collapse rounded-xl overflow-hidden">
+        <thead>
+          <tr class="bg-surface-light">
+            <th class="text-left p-4 text-white font-semibold">Feature</th>
+            <th class="text-center p-4 text-primary font-semibold">SolScript</th>
+            <th class="text-center p-4 text-text-muted font-semibold">Solang</th>
+            <th class="text-center p-4 text-text-muted font-semibold">Neon EVM</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Approach</td><td class="p-4 text-center text-white">Transpiler</td><td class="p-4 text-center text-text-muted">Compiler</td><td class="p-4 text-center text-text-muted">VM Emulation</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Output</td><td class="p-4 text-center text-secondary">Readable Rust/Anchor</td><td class="p-4 text-center text-text-muted">BPF bytecode</td><td class="p-4 text-center text-text-muted">EVM bytecode</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Auditable output</td><td class="p-4 text-center text-secondary">Yes (Rust source)</td><td class="p-4 text-center text-red-400">No (binary only)</td><td class="p-4 text-center text-red-400">No (EVM bytecode)</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Auto PDA mapping</td><td class="p-4 text-center text-secondary">Yes</td><td class="p-4 text-center text-red-400">Manual</td><td class="p-4 text-center text-text-muted">N/A (EVM storage)</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Browser playground</td><td class="p-4 text-center text-secondary">Yes (WASM)</td><td class="p-4 text-center text-red-400">No</td><td class="p-4 text-center text-red-400">No</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Existing ETH contracts</td><td class="p-4 text-center text-yellow-400">Rewrite needed</td><td class="p-4 text-center text-yellow-400">Modifications needed</td><td class="p-4 text-center text-secondary">Minimal changes</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Native Solana perf</td><td class="p-4 text-center text-secondary">Yes</td><td class="p-4 text-center text-secondary">Yes</td><td class="p-4 text-center text-yellow-400">Emulation overhead</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Solidity version</td><td class="p-4 text-center text-white">Solidity-style</td><td class="p-4 text-center text-text-muted">0.8 compatible</td><td class="p-4 text-center text-text-muted">Full EVM compat</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Anchor integration</td><td class="p-4 text-center text-secondary">Native output</td><td class="p-4 text-center text-secondary">Supported</td><td class="p-4 text-center text-red-400">No</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">SPL Token built-in</td><td class="p-4 text-center text-secondary">Yes</td><td class="p-4 text-center text-yellow-400">Via libraries</td><td class="p-4 text-center text-red-400">ERC-20 only</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">VS Code extension</td><td class="p-4 text-center text-secondary">Yes (LSP)</td><td class="p-4 text-center text-yellow-400">Basic</td><td class="p-4 text-center text-red-400">Standard Solidity</td></tr>
+          <tr class="bg-surface/30"><td class="p-4 text-text-muted">Maturity</td><td class="p-4 text-center text-yellow-400">Beta</td><td class="p-4 text-center text-secondary">Stable</td><td class="p-4 text-center text-secondary">Production</td></tr>
+          <tr class="bg-surface/50"><td class="p-4 text-text-muted">Backing</td><td class="p-4 text-center text-text-muted">Open source</td><td class="p-4 text-center text-text-muted">Hyperledger</td><td class="p-4 text-center text-text-muted">Neon Labs ($40M raised)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- When to Choose -->
+    <h2 class="text-2xl font-bold text-white mb-6">When to Choose Each Tool</h2>
+    <div class="grid md:grid-cols-3 gap-4 mb-12">
+      <div class="rounded-xl border border-primary/30 bg-surface p-5">
+        <h3 class="text-base font-semibold text-primary mb-3">Choose SolScript When</h3>
+        <ul class="space-y-2 text-text-muted text-sm">
+          <li>You want <strong class="text-white">readable, auditable</strong> output</li>
+          <li>You need <strong class="text-white">automatic PDA</strong> handling</li>
+          <li>You want a <strong class="text-white">browser playground</strong></li>
+          <li>You're building <strong class="text-white">new contracts</strong> for Solana</li>
+          <li>You prefer <strong class="text-white">Anchor-compatible</strong> code</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-border bg-surface p-5">
+        <h3 class="text-base font-semibold text-white mb-3">Choose Solang When</h3>
+        <ul class="space-y-2 text-text-muted text-sm">
+          <li>You need <strong class="text-white">strict Solidity 0.8</strong> compat</li>
+          <li>You want <strong class="text-white">direct BPF</strong> compilation</li>
+          <li>You prefer <strong class="text-white">Hyperledger</strong> ecosystem</li>
+          <li>You understand Solana's <strong class="text-white">account model</strong></li>
+          <li>You need a <strong class="text-white">stable, established</strong> tool</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-border bg-surface p-5">
+        <h3 class="text-base font-semibold text-white mb-3">Choose Neon EVM When</h3>
+        <ul class="space-y-2 text-text-muted text-sm">
+          <li>You have <strong class="text-white">existing ETH contracts</strong></li>
+          <li>You want <strong class="text-white">minimal code changes</strong></li>
+          <li>You need <strong class="text-white">full EVM compatibility</strong></li>
+          <li>You use <strong class="text-white">Hardhat/Foundry</strong> tooling</li>
+          <li>Emulation overhead is <strong class="text-white">acceptable</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Performance Comparison -->
+    <h2 class="text-2xl font-bold text-white mb-6">Performance Considerations</h2>
+    <div class="rounded-xl border border-border bg-surface p-6 mb-12">
+      <p class="text-text-muted leading-relaxed mb-4">SolScript and Solang both produce <strong class="text-white">native Solana programs</strong> that execute directly on the Solana runtime. There is no emulation layer, so performance matches hand-written Rust/Anchor programs.</p>
+      <p class="text-text-muted leading-relaxed mb-4">Neon EVM adds an <strong class="text-white">emulation layer</strong> — an EVM interpreter running as a Solana program. This means every EVM opcode is translated at runtime, which adds compute unit overhead. For simple operations this is negligible, but for complex DeFi protocols the difference can matter.</p>
+      <p class="text-text-muted leading-relaxed">For <strong class="text-white">new projects targeting Solana</strong>, native compilation (SolScript or Solang) is recommended over EVM emulation. For <strong class="text-white">porting existing Ethereum dApps quickly</strong>, Neon EVM trades performance for convenience.</p>
+    </div>
+
+    <!-- FAQ -->
+    <h2 class="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h2>
+    <div class="space-y-4 mb-12">
+      {faqs.map((faq) => (
+        <details class="group rounded-xl border border-border bg-surface overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer text-white font-medium hover:bg-surface-light transition-colors">
+            {faq.question}
+            <span class="text-text-muted group-open:rotate-180 transition-transform ml-4">&#9660;</span>
+          </summary>
+          <div class="px-5 pb-5 text-text-muted leading-relaxed">
+            {faq.answer}
+          </div>
+        </details>
+      ))}
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center py-8">
+      <a href="/playground" class="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold text-lg transition-colors">
+        Try SolScript in the Browser
+      </a>
+      <p class="mt-3 text-text-muted text-sm">No installation needed. Write Solidity, compile to Solana, instantly.</p>
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,68 @@
+---
+import Base from '@/layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const tutorials = await getCollection('tutorials');
+  return tutorials.map((tutorial) => ({
+    params: { slug: tutorial.id },
+    props: { tutorial },
+  }));
+}
+
+const { tutorial } = Astro.props;
+const { Content } = await render(tutorial);
+---
+
+<Base
+  title={tutorial.data.title}
+  description={tutorial.data.description}
+  type="article"
+  publishedTime={tutorial.data.pubDate.toISOString()}
+  author={tutorial.data.author}
+  tags={tutorial.data.tags}
+  jsonLdType="tutorial"
+  jsonLdData={{
+    title: tutorial.data.title,
+    description: tutorial.data.description,
+    author: tutorial.data.author,
+    pubDate: tutorial.data.pubDate.toISOString(),
+    difficulty: tutorial.data.difficulty,
+    duration: `PT${parseInt(tutorial.data.duration)}M`,
+  }}
+  breadcrumbs={[
+    { name: 'Home', url: '/' },
+    { name: 'Tutorials', url: '/tutorials' },
+    { name: tutorial.data.title, url: Astro.url.pathname },
+  ]}
+>
+  <article class="max-w-3xl mx-auto">
+    <header class="mb-10">
+      <div class="flex items-center gap-3 text-sm text-text-muted mb-4">
+        <span class="capitalize">{tutorial.data.difficulty}</span>
+        <span>&middot;</span>
+        <span>{tutorial.data.duration}</span>
+      </div>
+      <h1 class="text-4xl font-bold text-white leading-tight">{tutorial.data.title}</h1>
+      <p class="mt-4 text-lg text-text-muted">{tutorial.data.description}</p>
+    </header>
+
+    <div class="prose prose-invert prose-lg max-w-none
+      prose-headings:text-white prose-headings:font-semibold
+      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+      prose-pre:bg-surface prose-pre:border prose-pre:border-border prose-pre:rounded-xl
+      prose-strong:text-white
+      prose-blockquote:border-primary prose-blockquote:text-text-muted
+      prose-li:text-text-muted
+      prose-p:text-text-muted
+    ">
+      <Content />
+    </div>
+
+    <footer class="mt-12 pt-8 border-t border-border flex justify-between">
+      <a href="/tutorials" class="text-primary hover:text-primary-dark transition-colors font-medium">&larr; All Tutorials</a>
+      <a href="/playground" class="text-primary hover:text-primary-dark transition-colors font-medium">Try in Playground &rarr;</a>
+    </footer>
+  </article>
+</Base>

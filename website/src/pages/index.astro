@@ -1,0 +1,292 @@
+---
+import Base from '@/layouts/Base.astro';
+import Hero from '@/components/Hero.astro';
+import CodeBlock from '@/components/CodeBlock.astro';
+
+const exampleCode = `contract Token {
+    string public name;
+    string public symbol;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    constructor(string memory _name, string memory _symbol, uint256 _supply) {
+        name = _name;
+        symbol = _symbol;
+        _mint(msg.sender, _supply);
+    }
+
+    function transfer(address to, uint256 amount) public returns (bool) {
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+}`;
+
+const features = [
+  {
+    title: 'Solidity Syntax',
+    description: 'Write contracts in the language you already know. State variables, mappings, events, modifiers, and inheritance all work as expected.',
+    icon: '{ }',
+  },
+  {
+    title: 'Automatic PDA Mapping',
+    description: 'Solidity mappings compile to Solana Program Derived Addresses automatically. No manual seed management or bump derivation.',
+    icon: '->',
+  },
+  {
+    title: 'Anchor Compatible',
+    description: 'Generated code is standard Rust/Anchor. Inspect it, modify it, audit it, and deploy it with existing Solana tools.',
+    icon: '⚓',
+  },
+  {
+    title: 'Browser WASM Compiler',
+    description: 'Compile contracts instantly in the browser. No backend required. The playground runs a full WASM-compiled SolScript compiler.',
+    icon: '▶',
+  },
+  {
+    title: 'SPL Token Built-in',
+    description: 'Token transfers, minting, and burning are first-class operations. SolScript generates the correct SPL Token CPI calls.',
+    icon: '$',
+  },
+  {
+    title: 'VS Code Extension',
+    description: 'Full Language Server Protocol support with real-time diagnostics, syntax highlighting, and build commands.',
+    icon: '<>',
+  },
+];
+
+const faqs = [
+  {
+    question: 'What is SolScript?',
+    answer: 'SolScript is a compiler that lets you write Solana smart contracts using Solidity syntax. It bridges the gap between Ethereum and Solana development by compiling familiar Solidity-style code into native Solana BPF programs.',
+  },
+  {
+    question: 'Can I deploy Solidity contracts to Solana?',
+    answer: 'Not directly — Solana uses a different virtual machine (BPF) than Ethereum (EVM). SolScript compiles Solidity-style syntax into native Solana programs. The syntax is familiar, but the output is a Solana BPF program with full Anchor compatibility.',
+  },
+  {
+    question: 'Is SolScript free to use?',
+    answer: 'Yes. SolScript is fully open source under the MIT license. The compiler, playground, CLI tool, and VS Code extension are all free.',
+  },
+  {
+    question: 'Do I need to know Rust to use SolScript?',
+    answer: 'No. SolScript is designed so you never need to write Rust. You write Solidity-style code, and SolScript generates the Rust/Anchor code for you. However, understanding the generated code is helpful for advanced debugging.',
+  },
+  {
+    question: 'How do Solidity mappings work on Solana?',
+    answer: 'SolScript automatically converts Solidity mappings to Solana Program Derived Addresses (PDAs). When you write mapping(address => uint256) public balanceOf, SolScript creates PDA accounts using the key as a seed. This is handled transparently.',
+  },
+  {
+    question: 'What Solidity features are supported?',
+    answer: 'SolScript supports state variables, mappings, functions (public, internal, view, pure), modifiers, events, custom errors, constructors, single inheritance, interfaces, and SPL Token operations. EVM-specific features like assembly, delegatecall, and selfdestruct are not applicable to Solana.',
+  },
+];
+---
+
+<Base
+  title="SolScript - Write Solana Smart Contracts in Solidity"
+  description="SolScript is a Solidity-to-Solana compiler. Write smart contracts in familiar Solidity syntax and compile them to native Solana BPF programs with Anchor compatibility."
+  tags={['solscript', 'solidity', 'solana', 'smart contracts', 'compiler', 'blockchain', 'anchor', 'BPF', 'ethereum to solana']}
+  jsonLdType="landing"
+  breadcrumbs={[{ name: 'Home', url: '/' }]}
+  fullWidth
+>
+  <!-- Hero -->
+  <Hero
+    title='Write Solana Smart Contracts in <span class="text-primary">Solidity</span>'
+    subtitle="SolScript compiles Solidity-style code into native Solana BPF programs. Use the syntax you already know to build on the fastest blockchain."
+    ctaText="Try the Playground"
+    ctaHref="/playground"
+    secondaryCtaText="View Examples"
+    secondaryCtaHref="/examples"
+  />
+
+  <!-- Code Example -->
+  <section class="py-16 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-white">Solidity Syntax, Solana Performance</h2>
+        <p class="mt-3 text-text-muted text-lg">Write a token contract in Solidity. Deploy it to Solana.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6 items-start">
+        <div>
+          <CodeBlock code={exampleCode} title="token.sol" />
+        </div>
+        <div class="space-y-6">
+          <div class="rounded-xl border border-border bg-surface p-6">
+            <h3 class="text-lg font-semibold text-white mb-3">What SolScript Does</h3>
+            <ul class="space-y-3 text-text-muted">
+              <li class="flex items-start gap-2">
+                <span class="text-secondary mt-0.5 font-bold">1.</span>
+                <span>Parses your Solidity-style contract</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-secondary mt-0.5 font-bold">2.</span>
+                <span>Converts <code class="text-primary bg-primary/10 px-1 rounded">mapping</code> to Solana PDAs</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-secondary mt-0.5 font-bold">3.</span>
+                <span>Generates Rust/Anchor code</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-secondary mt-0.5 font-bold">4.</span>
+                <span>Deploys to Solana devnet, testnet, or mainnet</span>
+              </li>
+            </ul>
+          </div>
+          <a
+            href="/playground"
+            class="block w-full text-center px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold transition-colors"
+          >
+            Try This Example in the Playground
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-16 px-4 bg-surface/30">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-white">Everything You Need</h2>
+        <p class="mt-3 text-text-muted text-lg">A complete compiler toolchain for Solidity-to-Solana development.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {features.map((feature) => (
+          <div class="rounded-xl border border-border bg-surface p-6 hover:border-primary/30 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-mono font-bold text-sm mb-4">
+              {feature.icon}
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+            <p class="text-text-muted text-sm leading-relaxed">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  <section class="py-16 px-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-white">How SolScript Compares</h2>
+        <p class="mt-3 text-text-muted text-lg">Choose the right tool for your Solana development workflow.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse rounded-xl overflow-hidden">
+          <thead>
+            <tr class="bg-surface-light">
+              <th class="text-left p-4 text-white font-semibold">Feature</th>
+              <th class="text-center p-4 text-primary font-semibold">SolScript</th>
+              <th class="text-center p-4 text-text-muted font-semibold">Solang</th>
+              <th class="text-center p-4 text-text-muted font-semibold">Anchor (Rust)</th>
+              <th class="text-center p-4 text-text-muted font-semibold">Neon EVM</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr class="bg-surface/50">
+              <td class="p-4 text-text-muted">Language</td>
+              <td class="p-4 text-center text-white">Solidity</td>
+              <td class="p-4 text-center text-text-muted">Solidity</td>
+              <td class="p-4 text-center text-text-muted">Rust</td>
+              <td class="p-4 text-center text-text-muted">Solidity</td>
+            </tr>
+            <tr class="bg-surface/30">
+              <td class="p-4 text-text-muted">Approach</td>
+              <td class="p-4 text-center text-white">Transpiler</td>
+              <td class="p-4 text-center text-text-muted">LLVM Compiler</td>
+              <td class="p-4 text-center text-text-muted">Native</td>
+              <td class="p-4 text-center text-text-muted">EVM Emulation</td>
+            </tr>
+            <tr class="bg-surface/50">
+              <td class="p-4 text-text-muted">Auto PDA Mapping</td>
+              <td class="p-4 text-center text-secondary">Yes</td>
+              <td class="p-4 text-center text-red-400">Manual</td>
+              <td class="p-4 text-center text-red-400">Manual</td>
+              <td class="p-4 text-center text-text-muted">N/A</td>
+            </tr>
+            <tr class="bg-surface/30">
+              <td class="p-4 text-text-muted">Auditable Output</td>
+              <td class="p-4 text-center text-secondary">Rust source code</td>
+              <td class="p-4 text-center text-red-400">Binary only</td>
+              <td class="p-4 text-center text-secondary">Native Rust</td>
+              <td class="p-4 text-center text-red-400">EVM bytecode</td>
+            </tr>
+            <tr class="bg-surface/50">
+              <td class="p-4 text-text-muted">Browser Playground</td>
+              <td class="p-4 text-center text-secondary">Yes (WASM)</td>
+              <td class="p-4 text-center text-red-400">No</td>
+              <td class="p-4 text-center text-red-400">No</td>
+              <td class="p-4 text-center text-red-400">No</td>
+            </tr>
+            <tr class="bg-surface/30">
+              <td class="p-4 text-text-muted">Native Solana Perf</td>
+              <td class="p-4 text-center text-secondary">Yes</td>
+              <td class="p-4 text-center text-secondary">Yes</td>
+              <td class="p-4 text-center text-secondary">Yes</td>
+              <td class="p-4 text-center text-yellow-400">Emulated</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-6 text-center flex gap-4 justify-center flex-wrap">
+        <a href="/compare/solscript-vs-solang-vs-neon" class="text-primary hover:text-primary-dark transition-colors text-sm font-medium">
+          SolScript vs Solang vs Neon EVM &rarr;
+        </a>
+        <a href="/compare/solidity-vs-anchor" class="text-primary hover:text-primary-dark transition-colors text-sm font-medium">
+          SolScript vs Anchor &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-16 px-4 bg-surface/30">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-white">Frequently Asked Questions</h2>
+      </div>
+      <div class="space-y-4">
+        {faqs.map((faq) => (
+          <details class="group rounded-xl border border-border bg-surface overflow-hidden">
+            <summary class="flex items-center justify-between p-5 cursor-pointer text-white font-medium hover:bg-surface-light transition-colors">
+              {faq.question}
+              <span class="text-text-muted group-open:rotate-180 transition-transform ml-4">▼</span>
+            </summary>
+            <div class="px-5 pb-5 text-text-muted leading-relaxed">
+              {faq.answer}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-20 px-4 text-center">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="text-3xl font-bold text-white">Start Building on Solana Today</h2>
+      <p class="mt-4 text-text-muted text-lg">No Rust required. Write your first Solana contract in Solidity syntax.</p>
+      <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <a
+          href="/playground"
+          class="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold text-lg transition-colors shadow-lg shadow-primary/25"
+        >
+          Open the Playground
+        </a>
+        <a
+          href="https://docs.cryptuon.com/solscript"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center px-8 py-3 rounded-lg border border-border hover:border-primary/50 text-white font-semibold text-lg transition-colors"
+        >
+          Read the Docs
+        </a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,46 @@
+# SolScript
+
+> SolScript is a Solidity-to-Solana compiler framework that lets Ethereum developers write Solana smart contracts using familiar Solidity syntax. It compiles Solidity-style code into Solana BPF programs with full Anchor framework compatibility.
+
+## What SolScript Does
+
+SolScript bridges the gap between Ethereum and Solana development. Developers write contracts in Solidity syntax and SolScript compiles them to native Solana programs. Solidity mappings are automatically converted to Solana PDAs (Program Derived Addresses). The generated code is standard Rust/Anchor, fully auditable and deployable.
+
+## Key Pages
+
+- [Home](https://solscript.cryptuon.com/): Overview and getting started
+- [Playground](https://solscript.cryptuon.com/playground): Browser-based IDE with WASM compiler for instant feedback
+- [Examples](https://solscript.cryptuon.com/examples): Token, AMM, staking, multisig, escrow, and more
+- [Blog](https://solscript.cryptuon.com/blog): Articles on Solidity-to-Solana development
+- [Tutorials](https://solscript.cryptuon.com/tutorials): Step-by-step guides
+- [SolScript vs Anchor](https://solscript.cryptuon.com/compare/solidity-vs-anchor): Comparison guide
+
+## Documentation
+
+- [Getting Started](https://docs.cryptuon.com/solscript/getting-started/quickstart/)
+- [Language Guide](https://docs.cryptuon.com/solscript/language-guide/types/)
+- [CLI Reference](https://docs.cryptuon.com/solscript/reference/cli/)
+
+## Features
+
+- Solidity syntax compiles to Solana BPF programs
+- Automatic PDA mapping from Solidity mappings
+- Full Anchor framework compatibility
+- Browser-based WASM compiler for instant feedback
+- SPL Token operations built-in
+- VS Code extension with Language Server Protocol
+- Custom errors, events, modifiers, and inheritance
+- Direct LLVM-to-BPF compilation mode (optional)
+
+## How SolScript Differs from Alternatives
+
+- **vs Solang** (Hyperledger): Both use Solidity syntax. SolScript generates readable Anchor/Rust source; Solang compiles to BPF binary. SolScript has browser playground and auto PDA mapping.
+- **vs Neon EVM**: Neon emulates the full EVM on Solana; SolScript compiles to native Solana programs with no emulation overhead.
+- **vs Anchor**: Anchor requires Rust; SolScript uses Solidity syntax and generates Anchor code.
+- **vs Seahorse**: Seahorse uses Python syntax; SolScript uses Solidity (larger developer base).
+
+## Links
+
+- [GitHub Repository](https://github.com/cryptuon/solscript)
+- [Full Documentation](https://docs.cryptuon.com/solscript)
+- [Extended LLM Context](https://solscript.cryptuon.com/llms-full.txt)

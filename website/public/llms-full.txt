@@ -1,0 +1,148 @@
+# SolScript - Full Context for AI
+
+> SolScript is a Solidity-to-Solana compiler framework that lets Ethereum developers write Solana smart contracts using familiar Solidity syntax. It compiles Solidity-style code into Solana BPF programs with full Anchor framework compatibility.
+
+## Overview
+
+SolScript solves a key problem in blockchain development: Solana is fast and cheap, but its development requires Rust expertise. Most smart contract developers know Solidity from Ethereum. SolScript lets them use that existing knowledge to build on Solana without learning Rust.
+
+The compiler parses Solidity-style source code, performs type checking, and generates either Rust/Anchor code or compiles directly to BPF bytecode via LLVM.
+
+## How It Works
+
+1. **Parse**: SolScript parses contracts written in Solidity-like syntax
+2. **Type Check**: Semantic analysis validates types, state access, and control flow
+3. **Code Generation**: Outputs standard Rust/Anchor code OR compiles directly to BPF
+4. **Deploy**: Generated programs deploy to Solana devnet, testnet, or mainnet
+
+### Key Transformation: Mappings to PDAs
+
+Solidity uses `mapping(address => uint256)` for key-value storage. Solana doesn't have mappings — it uses Program Derived Addresses (PDAs). SolScript automatically transforms:
+
+```solidity
+mapping(address => uint256) public balanceOf;
+```
+
+Into PDA-based account lookups with the correct seeds and bump derivation.
+
+## Supported Language Features
+
+- **State Variables**: uint8-uint256, int8-int256, bool, string, address, bytes, arrays, structs
+- **Mappings**: Automatically converted to Solana PDAs
+- **Functions**: public, internal, view, pure, payable
+- **Modifiers**: Custom modifiers with `_;` placeholder
+- **Events**: Emitted as Anchor events
+- **Custom Errors**: `error Name(params)` with `revert`
+- **Constructors**: Map to Anchor `initialize` instructions
+- **Inheritance**: Single inheritance with `is` keyword
+- **Interfaces**: Abstract contract definitions
+- **Access Control**: `msg.sender`, `onlyOwner` patterns
+- **SPL Token Operations**: Built-in token transfer, mint, burn
+
+## Example: Token Contract
+
+```solidity
+contract Token {
+    string public name;
+    string public symbol;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    error InsufficientBalance(uint256 available, uint256 required);
+
+    constructor(string memory _name, string memory _symbol, uint256 _initialSupply) {
+        name = _name;
+        symbol = _symbol;
+        _mint(msg.sender, _initialSupply);
+    }
+
+    function transfer(address to, uint256 amount) public returns (bool) {
+        if (balanceOf[msg.sender] < amount) {
+            revert InsufficientBalance(balanceOf[msg.sender], amount);
+        }
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+}
+```
+
+This compiles to a fully functional Solana program with PDA-based balance accounts.
+
+## Tools and Ecosystem
+
+### Playground (Web IDE)
+- Browser-based IDE at solscript.cryptuon.com/playground
+- Client-side WASM compiler for instant feedback (no server round-trip)
+- Monaco editor with SolScript syntax highlighting
+- Direct deployment to Solana devnet/testnet via Phantom or Solflare wallet
+- Local project storage via IndexedDB
+
+### CLI
+- `solscript build <file.sol>` — compile to Rust/Anchor
+- `solscript check <file.sol>` — type check without codegen
+- `solscript build --bpf <file.sol>` — compile directly to BPF (requires LLVM 18)
+
+### VS Code Extension
+- Syntax highlighting for .sol files
+- Language Server Protocol integration
+- Real-time diagnostics and error reporting
+- Build and check commands
+
+## Comparison with Alternatives
+
+### SolScript vs Writing Rust/Anchor Directly
+- **SolScript**: Familiar Solidity syntax, less boilerplate, automatic PDA handling
+- **Rust/Anchor**: Full control, larger ecosystem, more mature tooling
+- **Best for**: Ethereum developers migrating to Solana, rapid prototyping
+
+### SolScript vs Seahorse
+- **SolScript**: Uses Solidity syntax (larger developer pool), generates Anchor-compatible code
+- **Seahorse**: Uses Python syntax, also generates Anchor code
+- **Key difference**: SolScript targets the Ethereum developer community specifically
+
+## Frequently Asked Questions
+
+**Q: Can I deploy Solidity contracts directly to Solana?**
+A: Not directly — Solana uses a different virtual machine (BPF, not EVM). SolScript compiles Solidity-style syntax into native Solana programs. The syntax is familiar, but the output is a Solana program, not an EVM contract.
+
+**Q: Is SolScript free and open source?**
+A: Yes. SolScript is open source under the MIT license. The playground, CLI, VS Code extension, and compiler are all free to use.
+
+**Q: Does SolScript support all Solidity features?**
+A: SolScript supports the most commonly used Solidity features: state variables, mappings, functions, modifiers, events, custom errors, constructors, inheritance, and interfaces. Some EVM-specific features (assembly blocks, delegatecall, selfdestruct) are not applicable to Solana and are not supported.
+
+**Q: What's the difference between Anchor mode and BPF mode?**
+A: Anchor mode generates human-readable Rust/Anchor code that you can inspect, modify, and deploy with standard Solana tools. BPF mode compiles directly to Solana bytecode via LLVM, which is faster but produces a binary rather than source code.
+
+**Q: Can I use SolScript for production contracts?**
+A: SolScript is currently in beta (v0.1.1). It's suitable for prototyping, learning, and devnet/testnet deployments. For mainnet production contracts handling significant value, we recommend auditing the generated Anchor code before deployment.
+
+**Q: How do Solidity mappings work on Solana?**
+A: Solidity mappings are automatically converted to Solana Program Derived Addresses (PDAs). When you write `mapping(address => uint256) public balanceOf`, SolScript creates a PDA account for each key, using the key as a seed. This is transparent to the developer.
+
+**Q: How does SolScript compare to Solang?**
+A: Both let you write Solidity for Solana, but they work differently. SolScript generates readable Rust/Anchor source code with automatic PDA mapping and a browser playground. Solang (by Hyperledger) compiles Solidity directly to BPF bytecode via LLVM. SolScript's key advantages are auditable output, automatic PDA handling, and browser-based development. Solang's advantage is stricter Solidity 0.8 compatibility and Hyperledger backing.
+
+**Q: How does SolScript compare to Neon EVM?**
+A: Neon EVM runs a full Ethereum Virtual Machine on Solana, so existing Ethereum contracts work with minimal changes. SolScript compiles to native Solana programs with no emulation layer. SolScript gives native performance, while Neon EVM trades performance for maximum EVM compatibility.
+
+**Q: What are the alternatives for writing Solidity on Solana?**
+A: There are three main tools: SolScript (transpiles to Anchor/Rust), Solang (compiles to BPF via LLVM), and Neon EVM (full EVM emulation). For Python syntax, there's Seahorse. For native Rust, there's the Anchor framework. SolScript is the only one with a browser-based WASM playground.
+
+## Project Status
+
+- **Version**: 0.1.1 (Beta)
+- **Language**: Rust compiler infrastructure
+- **License**: MIT
+- **Repository**: https://github.com/cryptuon/solscript
+
+## Links
+
+- Homepage: https://solscript.cryptuon.com
+- Playground: https://solscript.cryptuon.com/playground
+- Documentation: https://docs.cryptuon.com/solscript
+- GitHub: https://github.com/cryptuon/solscript
+- Short LLM context: https://solscript.cryptuon.com/llms.txt

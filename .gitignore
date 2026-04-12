@@ -21,3 +21,8 @@ vscode-extension/*.vsix
 
 # Playground (has its own .gitignore)
 playground/target/
+
+# Website (Astro)
+website/node_modules/
+website/dist/
+website/.astro/

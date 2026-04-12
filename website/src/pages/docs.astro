@@ -1,0 +1,82 @@
+---
+import Base from '@/layouts/Base.astro';
+
+const docSections = [
+  {
+    title: 'Getting Started',
+    links: [
+      { label: 'Installation', href: 'https://docs.cryptuon.com/solscript/getting-started/installation/' },
+      { label: 'Quickstart', href: 'https://docs.cryptuon.com/solscript/getting-started/quickstart/' },
+      { label: 'First Contract', href: 'https://docs.cryptuon.com/solscript/getting-started/first-contract/' },
+    ],
+  },
+  {
+    title: 'Language Guide',
+    links: [
+      { label: 'Types', href: 'https://docs.cryptuon.com/solscript/language-guide/types/' },
+      { label: 'Functions', href: 'https://docs.cryptuon.com/solscript/language-guide/functions/' },
+      { label: 'State Variables', href: 'https://docs.cryptuon.com/solscript/language-guide/state/' },
+      { label: 'Control Flow', href: 'https://docs.cryptuon.com/solscript/language-guide/control-flow/' },
+      { label: 'Modifiers', href: 'https://docs.cryptuon.com/solscript/language-guide/modifiers/' },
+    ],
+  },
+  {
+    title: 'Reference',
+    links: [
+      { label: 'CLI Reference', href: 'https://docs.cryptuon.com/solscript/reference/cli/' },
+      { label: 'Built-in Types', href: 'https://docs.cryptuon.com/solscript/reference/types/' },
+      { label: 'Grammar', href: 'https://docs.cryptuon.com/solscript/reference/grammar/' },
+    ],
+  },
+];
+---
+
+<Base
+  title="Documentation - SolScript"
+  description="SolScript documentation: installation, language guide, tutorials, and API reference for the Solidity-to-Solana compiler."
+  tags={['solscript docs', 'solscript documentation', 'solana compiler docs']}
+  breadcrumbs={[
+    { name: 'Home', url: '/' },
+    { name: 'Documentation', url: '/docs' },
+  ]}
+>
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold text-white mb-3">Documentation</h1>
+    <p class="text-text-muted text-lg mb-10">
+      Full documentation is available at <a href="https://docs.cryptuon.com/solscript" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-dark transition-colors">docs.cryptuon.com/solscript</a>.
+    </p>
+
+    <div class="space-y-8">
+      {docSections.map((section) => (
+        <div class="rounded-xl border border-border bg-surface p-6">
+          <h2 class="text-xl font-semibold text-white mb-4">{section.title}</h2>
+          <ul class="space-y-2">
+            {section.links.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-text-muted hover:text-primary transition-colors"
+                >
+                  {link.label} &nearr;
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-10 text-center">
+      <a
+        href="https://docs.cryptuon.com/solscript"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold transition-colors"
+      >
+        Go to Full Documentation
+      </a>
+    </div>
+  </div>
+</Base>

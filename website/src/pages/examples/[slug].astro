@@ -1,0 +1,73 @@
+---
+import Base from '@/layouts/Base.astro';
+import CodeBlock from '@/components/CodeBlock.astro';
+import { getCollection, render } from 'astro:content';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export async function getStaticPaths() {
+  const examples = await getCollection('examples');
+  return examples.map((example) => ({
+    params: { slug: example.id },
+    props: { example },
+  }));
+}
+
+const { example } = Astro.props;
+const { Content } = await render(example);
+
+// Read the source file
+let sourceCode = '';
+try {
+  const sourcePath = path.resolve(`../examples/${example.data.sourceFile}`);
+  sourceCode = fs.readFileSync(sourcePath, 'utf-8');
+} catch {
+  sourceCode = '// Source file not found';
+}
+---
+
+<Base
+  title={`${example.data.title} - SolScript Example`}
+  description={example.data.description}
+  tags={example.data.tags}
+  jsonLdType="example"
+  jsonLdData={{
+    title: example.data.title,
+    description: example.data.description,
+  }}
+  breadcrumbs={[
+    { name: 'Home', url: '/' },
+    { name: 'Examples', url: '/examples' },
+    { name: example.data.title, url: Astro.url.pathname },
+  ]}
+>
+  <article class="max-w-4xl mx-auto">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-white">{example.data.title}</h1>
+      <p class="mt-3 text-text-muted text-lg">{example.data.description}</p>
+      <div class="mt-4 flex items-center gap-3">
+        <span class="text-xs px-2 py-1 rounded-md bg-surface-light text-text-muted capitalize">{example.data.difficulty}</span>
+        <a href="/playground" class="text-sm text-primary hover:text-primary-dark transition-colors font-medium">
+          Open in Playground &rarr;
+        </a>
+      </div>
+    </header>
+
+    <CodeBlock code={sourceCode} title={example.data.sourceFile} />
+
+    <div class="mt-8 prose prose-invert max-w-none
+      prose-headings:text-white prose-headings:font-semibold
+      prose-a:text-primary
+      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded
+      prose-p:text-text-muted
+      prose-li:text-text-muted
+      prose-strong:text-white
+    ">
+      <Content />
+    </div>
+
+    <footer class="mt-12 pt-8 border-t border-border">
+      <a href="/examples" class="text-primary hover:text-primary-dark transition-colors font-medium">&larr; All Examples</a>
+    </footer>
+  </article>
+</Base>
