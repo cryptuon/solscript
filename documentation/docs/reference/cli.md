@@ -5,7 +5,7 @@ The SolScript command-line interface for compiling and managing projects.
 ## Installation
 
 ```bash
-cargo install solscript
+cargo install --git https://github.com/cryptuon/solscript solscript-cli
 ```
 
 ## Commands

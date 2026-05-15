@@ -69,33 +69,53 @@ cluster = "devnet"
 
 ### src/main.sol
 
-The generated contract template:
+The generated `counter` template (`solscript new` default) is real Solidity:
 
-```solscript
-contract MyProject {
-    @state counter: u64;
-    @state owner: Address;
+```solidity
+contract Counter {
+    uint256 public count;
+    address public owner;
 
-    event CounterIncremented(by: Address, newValue: u64);
+    event Incremented(address indexed by, uint256 newValue);
+    event Decremented(address indexed by, uint256 newValue);
+    event Reset(address indexed by);
 
-    fn init() {
-        self.owner = tx.sender;
-        self.counter = 0;
+    error Underflow();
+    error Unauthorized();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
     }
 
-    @public
-    fn increment() {
-        self.counter += 1;
-        emit CounterIncremented(tx.sender, self.counter);
+    constructor() {
+        owner = msg.sender;
+        count = 0;
     }
 
-    @public
-    @view
-    fn get_counter(): u64 {
-        return self.counter;
+    function increment() public {
+        count += 1;
+        emit Incremented(msg.sender, count);
+    }
+
+    function decrement() public {
+        if (count == 0) revert Underflow();
+        count -= 1;
+        emit Decremented(msg.sender, count);
+    }
+
+    function reset() public onlyOwner {
+        count = 0;
+        emit Reset(msg.sender);
+    }
+
+    function getCount() public view returns (uint256) {
+        return count;
     }
 }
 ```
+
+Other available templates: `simple`, `token`, `voting`, `escrow`, `nft`.
 
 ## Build Your Contract
 
