@@ -1,6 +1,6 @@
 site_name: SolScript Documentation
 site_description: A high-level language for Solana smart contract development
-site_url: https://solscript.docs.cryptuon.com/
+site_url: https://docs.cryptuon.com/solscript/
 repo_url: https://github.com/cryptuon/solscript
 repo_name: cryptuon/solscript
 edit_uri: edit/main/documentation/docs/
