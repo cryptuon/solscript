@@ -16,7 +16,13 @@ Before installing SolScript, ensure you have:
 ### From Cargo (Recommended)
 
 ```bash
-cargo install solscript
+cargo install --git https://github.com/cryptuon/solscript solscript-cli
+```
+
+Or from crates.io:
+
+```bash
+cargo install solscript-cli
 ```
 
 ### From Source

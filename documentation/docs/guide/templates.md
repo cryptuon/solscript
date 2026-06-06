@@ -218,5 +218,5 @@ solscript deploy src/main.sol --cluster devnet
 ## See Also
 
 - [Quick Start](quickstart.md) - Get started with SolScript
-- [Examples](/examples/) - More example contracts in the repository
+- [Examples](../examples/counter.md) - More example contracts in the repository
 - [CLI Reference](../reference/cli.md) - Full command documentation

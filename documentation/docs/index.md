@@ -21,31 +21,40 @@ SolScript brings Solidity-style syntax to Solana, making it easier for developer
 
 ## Quick Example
 
-```solscript
+```solidity
 contract Counter {
-    @state count: u64;
-    @state owner: Address;
+    uint256 public count;
+    address public owner;
 
-    event CountChanged(by: Address, newValue: u64);
+    event Incremented(address indexed by, uint256 newValue);
+    error Unauthorized();
 
-    fn init() {
-        self.owner = tx.sender;
-        self.count = 0;
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
     }
 
-    @public
-    fn increment() {
-        self.count += 1;
-        emit CountChanged(tx.sender, self.count);
+    constructor() {
+        owner = msg.sender;
+        count = 0;
     }
 
-    @public
-    @view
-    fn get_count(): u64 {
-        return self.count;
+    function increment() public {
+        count += 1;
+        emit Incremented(msg.sender, count);
+    }
+
+    function reset() public onlyOwner {
+        count = 0;
+    }
+
+    function getCount() public view returns (uint256) {
+        return count;
     }
 }
 ```
+
+Compiles to a Solana program with automatic PDA derivation, Anchor-compatible accounts, and standard discriminators.
 
 ## Getting Started
 
@@ -119,13 +128,21 @@ SolScript handles most common patterns, but some Solana features require workaro
 ## Installation
 
 ```bash
-# Install via cargo
-cargo install solscript
+# Install from GitHub (recommended)
+cargo install --git https://github.com/cryptuon/solscript solscript-cli
 
 # Or build from source
 git clone https://github.com/cryptuon/solscript
 cd solscript
 cargo install --path crates/solscript-cli
+```
+
+Then create a project:
+
+```bash
+solscript new my-token --template token
+cd my-token
+solscript build-bpf src/main.sol
 ```
 
 ## Community

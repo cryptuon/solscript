@@ -91,7 +91,7 @@ contract Token {
 cargo install --git https://github.com/cryptuon/solscript solscript-cli
 
 # Create a project
-solscript init my-token
+solscript new my-token
 cd my-token
 
 # Build and deploy
@@ -215,7 +215,7 @@ export LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)
 ## CLI Reference
 
 ```bash
-solscript init <name>           # Create new project
+solscript new <name>            # Create new project
 solscript build <file>          # Generate Rust/Anchor code
 solscript build-bpf <file>      # Compile to deployable .so
 solscript build-bpf --llvm      # Direct LLVM compilation
