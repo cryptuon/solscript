@@ -23,6 +23,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.indexes
     - navigation.expand
     - navigation.top
     - search.suggest
@@ -64,40 +65,41 @@ extra:
 
 nav:
   - Home: index.md
-  - Getting Started:
-    - Installation: guide/installation.md
-    - Quick Start: guide/quickstart.md
-    - Project Templates: guide/templates.md
-    - Your First Contract: guide/first-contract.md
-  - Language Guide:
-    - Overview: guide/overview.md
-    - Solana Concepts: guide/solana-concepts.md
-    - Contracts: guide/contracts.md
-    - Types: guide/types.md
-    - Functions: guide/functions.md
-    - State Variables: guide/state.md
-    - Control Flow: guide/control-flow.md
-    - Events & Errors: guide/events-errors.md
-    - Modifiers: guide/modifiers.md
-    - Interfaces: guide/interfaces.md
-    - Inheritance: guide/inheritance.md
-  - Reference:
-    - CLI Commands: reference/cli.md
-    - Built-in Types: reference/types.md
-    - Built-in Objects: reference/builtins.md
-    - Attributes: reference/attributes.md
-    - Grammar: reference/grammar.md
-    - Roadmap: reference/roadmap.md
-  - Tutorials:
-    - Token Contract: tutorials/token.md
-    - NFT Marketplace: tutorials/nft-marketplace.md
-    - Escrow: tutorials/escrow.md
-  - Examples:
-    - Counter: examples/counter.md
-    - Token: examples/token.md
-    - Voting: examples/voting.md
-  - IDE Support:
-    - VS Code: ide/vscode.md
-    - Language Server: ide/lsp.md
+  - Docs:
+      - Getting Started:
+          - Installation: guide/installation.md
+          - Quick Start: guide/quickstart.md
+          - Project Templates: guide/templates.md
+          - Your First Contract: guide/first-contract.md
+      - Language Guide:
+          - Overview: guide/overview.md
+          - Solana Concepts: guide/solana-concepts.md
+          - Contracts: guide/contracts.md
+          - Types: guide/types.md
+          - Functions: guide/functions.md
+          - State Variables: guide/state.md
+          - Control Flow: guide/control-flow.md
+          - Events & Errors: guide/events-errors.md
+          - Modifiers: guide/modifiers.md
+          - Interfaces: guide/interfaces.md
+          - Inheritance: guide/inheritance.md
+      - Tutorials:
+          - Token Contract: tutorials/token.md
+          - NFT Marketplace: tutorials/nft-marketplace.md
+          - Escrow: tutorials/escrow.md
+      - Examples:
+          - Counter: examples/counter.md
+          - Token: examples/token.md
+          - Voting: examples/voting.md
+      - IDE Support:
+          - VS Code: ide/vscode.md
+          - Language Server: ide/lsp.md
+  - API Reference:
+      - CLI Commands: reference/cli.md
+      - Built-in Types: reference/types.md
+      - Built-in Objects: reference/builtins.md
+      - Attributes: reference/attributes.md
+      - Grammar: reference/grammar.md
+      - Roadmap: reference/roadmap.md
 
 copyright: Copyright &copy; 2024-2026 SolScript Contributors
