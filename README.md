@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-1.83%2B-blue.svg)](https://www.rust-lang.org)
 
+**[🌐 Site](https://solscript.cryptuon.com/) · [📚 Docs](https://docs.cryptuon.com/solscript/) · [📦 crates.io](https://crates.io/crates/solscript-cli) · [🔬 Cryptuon Research](https://github.com/cryptuon)**
+
 **Write Solidity. Deploy to Solana.**
 
 SolScript lets you write smart contracts in familiar Solidity syntax and compile them to native Solana programs. No Rust required. No Anchor boilerplate. Just your contract logic.
@@ -325,3 +327,13 @@ MIT License - see [LICENSE](LICENSE)
 ---
 
 **SolScript**: Solidity syntax. Solana performance. Ship faster.
+
+---
+
+## Part of Cryptuon Research
+
+`solscript` is one of [20 open-source blockchain-infrastructure projects](https://www.cryptuon.com/projects) from **[Cryptuon Research](https://www.cryptuon.com)** — blockchain theory, shipped as protocols.
+
+**Related projects:** [StxScript](https://stxscript.cryptuon.com/) · [Zig-EVM](https://zig-evm.cryptuon.com/) · [Tesseract](https://tesseract.cryptuon.com/)
+
+Docs: [docs.cryptuon.com/solscript](https://docs.cryptuon.com/solscript/) · Contact: [contact@cryptuon.com](mailto:contact@cryptuon.com)
